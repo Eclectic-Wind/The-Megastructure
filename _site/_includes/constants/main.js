@@ -1,0 +1,52 @@
+import { elements } from './scripts/elements.js';
+import { CardParallax } from './scripts/cardParallax.js';
+import { DarkMode } from './scripts/darkMode.js';
+import { DataAttributeHandler } from './scripts/dataAttribute.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loadingScreen = document.getElementById('loading-screen');
+
+    // Initialize your components
+    CardParallax.init();
+    DarkMode.init();
+
+    const dataAttributeHandler = new DataAttributeHandler();
+    dataAttributeHandler.init();
+
+    // Set up the interval for updating the age
+    setInterval(() => {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+            dataAttributeHandler.calculateAndDisplayAge();
+        }
+    }, 60000); // Check every minute
+
+    // Function to hide the loading screen
+    function hideLoadingScreen() {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+        }, 500); // Wait for fade out animation to complete
+    }
+
+    // Create a promise for any asynchronous operations you might have
+    function asyncOperations() {
+        return new Promise((resolve) => {
+            // If you have any async operations, put them here
+            // For example, if you're fetching some data:
+            // fetch('/api/data').then(() => resolve());
+            
+            // If you don't have any async operations, you can resolve immediately
+            resolve();
+        });
+    }
+
+    // Wait for both the window load event and any async operations
+    Promise.all([
+        new Promise(resolve => window.addEventListener('load', resolve)),
+        asyncOperations()
+    ]).then(() => {
+        // Everything has loaded, hide the loading screen
+        hideLoadingScreen();
+    });
+});

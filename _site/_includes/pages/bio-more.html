@@ -1,0 +1,88 @@
+<style>
+  .home-link {
+    text-decoration: none;
+    position: absolute;
+    transition: var(--transition);
+  }
+
+  .dark-mode .home-link,
+  .dark-mode .bio-more h1,
+  .dark-mode .bio-more h2,
+  .dark-mode .bio-more h3,
+  .dark-mode .bio-more h4,
+  .dark-mode .bio-more h5,
+  .dark-mode .bio-more h6 {
+    color: var(--dark-text);
+  }
+
+  .light-mode .home-link,
+  .light-mode .bio-more h1,
+  .light-mode .bio-more h2,
+  .light-mode .bio-more h3,
+  .light-mode .bio-more h4,
+  .light-mode .bio-more h5,
+  .light-mode .bio-more h6 {
+    color: var(--light-text);
+  }
+
+  .bio-more {
+    margin-top: 10px;
+  }
+
+  .bio-more h1,
+  .bio-more h2,
+  .bio-more h3,
+  .bio-more h4,
+  .bio-more h5,
+  .bio-more h6 {
+    text-align: center;
+  }
+
+  .bio-more p {
+    text-indent: 2em;
+  }
+
+  .dark-mode .bio-more a {
+    color: var(--dark-accent);
+  }
+
+  .light-mode .bio-more a {
+    color: var(--light-accent);
+  }
+</style>
+
+<a
+  class="home-link"
+  hx-get="_includes/pages/home.html"
+  hx-target="#dynamic-content"
+  aria-label="Back to home"
+>
+  <i class="fas fa-home"></i>
+</a>
+
+<div class="bio-more">
+  <h1>Babel.1</h1>
+  <p>
+    <i
+      >The first thing you sense is the smell of grass, then upon some moments
+      next is the sight of a wall with a facade of a thousand styles.</i
+    >
+  </p>
+  <p>
+    <i
+      >Thus is your first meeting with the megastructure; thus you are welcomed
+      to Babel.</i
+    >
+  </p>
+  <h2>Babel.1.1</h2>
+  <p>
+    Some time ago there was a researcher who made a thorough examination of the
+    structure. It was the 3rd chapter on his series called
+    <a
+      href="/_includes/assets/files/file.pdf"
+      target="_blank"
+      rel="noopener noreferrer"
+      ><i><u>'The Great Wonders of Magical Architecture'</u></i></a
+    >
+  </p>
+</div>
