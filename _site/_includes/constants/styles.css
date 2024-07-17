@@ -329,10 +329,12 @@ html.dark-mode .content-spotlight {
     height: 100%;
     position: absolute;
     border-left: 3vw solid rgba(255, 0, 0, 0);
-    background-color: transparent !important;
+    background-color: transparent;
     left: -5%;
     z-index: 1;
-    transition: left 0.2s var(--transition-easing),                 border-color var(--transition-duration) var(--transition-easing);
+    transition: left 0.2s var(--transition-easing), 
+                background-color var(--transition-duration) var(--transition-easing),
+                border-color var(--transition-duration) var(--transition-easing);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -349,7 +351,7 @@ html.dark-mode .content-spotlight {
     color: inherit;
 }
 
-.toggle-board::after {
+.toggle-board .line {
     content: '';
     position: absolute;
     right: 50%;
@@ -361,7 +363,7 @@ html.dark-mode .content-spotlight {
     transition: var(--transition);
   }
   
-  .light-mode .toggle-board::after {
+  .light-mode .toggle-board .line {
     background-color: var(--light-text);
   }
 
