@@ -14,9 +14,13 @@ const state = {
 };
 
 export const CardParallax = {
+    isParallaxEnabled: true,
+
     handleMouseMove(e) {
-        this.updateCardParallax(e);
-        this.updateContentSpotlight(e);
+        if (this.isParallaxEnabled) {
+            this.updateCardParallax(e);
+        }
+        this.updateContentSpotlight(e); // Always update the spotlight
     },
 
     updateCardParallax(e) {
@@ -57,9 +61,9 @@ export const CardParallax = {
             
             Object.assign(elements.spotlight.style, {
                 left: `${contentRect.left - containerRect.left - leftOffset}px`,
-                top: `${contentRect.top - containerRect.top - topOffset}px`,
+                top: `${contentRect.top - containerRect.top - topOffset -60}px`,
                 width: `${spotlightWidth}px`,
-                height: `${spotlightHeight}px`,
+                height: `${spotlightHeight + 50}px`,
                 opacity: '1'
             });
             
@@ -71,12 +75,17 @@ export const CardParallax = {
     },
 
     handleMouseLeave() {
+        this.resetToNeutralState();
+    },
+
+    resetToNeutralState() {
         const resetTransform = 'translate(0, 0)';
         elements.cardContainer.style.transform = 'rotateY(0deg) rotateX(0deg)';
         elements.background.style.transform = resetTransform;
         elements.content.style.transform = resetTransform;
         elements.spotlight.style.transform = resetTransform;
         elements.spotlight.style.opacity = '0';
+        elements.profile.style.transform = resetTransform;
     },
 
     handleResize: utils.debounce(function() {
@@ -90,10 +99,31 @@ export const CardParallax = {
         });
     }, 250),
 
+    enable() {
+        console.log('[CardParallax] Enabling parallax effect');
+        this.isParallaxEnabled = true;
+    },
+
+    disable() {
+        console.log('[CardParallax] Disabling parallax effect');
+        this.isParallaxEnabled = false;
+        this.resetToNeutralState();
+    },
+
     init() {
+        console.log('[CardParallax] Initializing');
+        this.enable();
         elements.cardContainer.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        elements.cardContainer.addEventListener('mouseleave', this.handleMouseLeave);
+        elements.cardContainer.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         window.addEventListener('resize', this.handleResize);
         this.handleResize();
     }
 };
+
+// Expose CardParallax globally
+window.CardParallax = CardParallax;
+
+// Initialize CardParallax
+document.addEventListener('DOMContentLoaded', () => {
+    window.CardParallax.init();
+});

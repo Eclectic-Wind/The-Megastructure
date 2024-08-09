@@ -16,8 +16,16 @@
 
 /* ===== TYPOGRAPHY ===== */
 h1, h2, h3, h4 {
-    transition: var(--transition);
+    transition:  color 0.2s ease;
     caret-color: transparent;
+}
+
+.dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4 {
+    color: var(--dark-text);
+}
+
+.light-mode h1, .light-mode h2, .light-mode h3, .light-mode h4 {
+    color: var(--light-text);
 }
 
 h1:hover, h2:hover, h3:hover, h4:hover {

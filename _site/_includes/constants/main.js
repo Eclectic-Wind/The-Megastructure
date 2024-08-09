@@ -33,10 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function asyncOperations() {
         return new Promise((resolve) => {
             // If you have any async operations, put them here
-            // For example, if you're fetching some data:
-            // fetch('/api/data').then(() => resolve());
-            
-            // If you don't have any async operations, you can resolve immediately
             resolve();
         });
     }
