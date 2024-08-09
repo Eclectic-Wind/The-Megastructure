@@ -29,7 +29,7 @@ class SPAHandler {
 
   async loadDynamicContent(route) {
     const contentUrl = this.routes[route] || this.errorPage;
-
+  
     try {
       await this.fadeOut();
       const html = await this.fetchContent(contentUrl);
@@ -37,6 +37,7 @@ class SPAHandler {
       this.updateCardParallax(route);
       await this.fadeIn();
       this.applyPageSpecificStyles(route);
+      this.applyPageSpecificScripts(route); 
     } catch (error) {
       console.error("Error loading content:", error);
       this.contentElement.innerHTML =
@@ -106,7 +107,21 @@ class SPAHandler {
     document.body.setAttribute("data-page", route);
     console.log(`[SPA] Applied page-specific attribute: data-page="${route}"`); // Debug log
   }
+
+  applyPageSpecificScripts(route) {
+    console.log(`Applying scripts for route: ${route}`);
+    if (route === 'archives') {
+      console.log('Attempting to initialize RepoNavigator');
+      if (typeof initRepoNavigator === 'function') {
+        initRepoNavigator();
+      } else {
+        console.error('initRepoNavigator function not found');
+      }
+    }
+  }
 }
+
+
 
 // Initialize the SPA handler
 document.addEventListener("DOMContentLoaded", () => {
