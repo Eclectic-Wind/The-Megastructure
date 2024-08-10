@@ -177,6 +177,12 @@ p {
   font-size: 1.2rem;
   position: relative;
   align-self: center;
+  width: 70%;
+}
+
+.breadcrumb-item {
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 #repo-search {
@@ -189,6 +195,11 @@ p {
   font-size: 16px;
   line-height: 40px;
   outline: none;
+}
+
+.tag-link {
+  text-decoration: none;
+  color: var(--dark-accent);
 }
 
 .dark-mode #repo-search {
@@ -205,7 +216,7 @@ p {
 
 .repo-item,
 .search-result-item {
-  width: 70%;
+  width: 96%;
   position: relative;
   left: 1rem;
   padding-bottom: 0.5rem;
@@ -230,6 +241,54 @@ p {
   transition: border-bottom 0.2s ease;
 }
 
+.repo-item .file,
+.repo-item .dir,
+.search-result-item .file-name,
+.search-result-item .folder-name {
+  cursor: pointer;
+}
+
+.modified-date {
+  position: absolute;
+  right: 0px;
+}
+
 .search-result-tree li {
   list-style-type: none;
+}
+
+/* FILE RENDERING CONTENT */
+
+.frontmatter-metadata p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.file-content-body {
+  position: relative;
+  margin-left: 15px;
+  margin-right: 15px;
+}
+
+.file-content-body h1 {
+  text-align: center;
+}
+
+.file-content-body table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+th,
+td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+tr:hover {
+  background-color: #8080802d;
 }

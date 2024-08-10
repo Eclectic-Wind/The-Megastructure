@@ -61,7 +61,7 @@ export const CardParallax = {
             
             Object.assign(elements.spotlight.style, {
                 left: `${contentRect.left - containerRect.left - leftOffset}px`,
-                top: `${contentRect.top - containerRect.top - topOffset -60}px`,
+                top: `${contentRect.top - containerRect.top - topOffset -70}px`,
                 width: `${spotlightWidth}px`,
                 height: `${spotlightHeight + 50}px`,
                 opacity: '1'

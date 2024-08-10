@@ -13,14 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataAttributeHandler = new DataAttributeHandler();
     dataAttributeHandler.init();
 
-    // Set up the interval for updating the age
-    setInterval(() => {
-        const now = new Date();
-        if (now.getHours() === 0 && now.getMinutes() === 0) {
-            dataAttributeHandler.calculateAndDisplayAge();
-        }
-    }, 60000); // Check every minute
-
     // Function to hide the loading screen
     function hideLoadingScreen() {
         loadingScreen.style.opacity = '0';
