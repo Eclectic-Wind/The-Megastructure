@@ -1,6 +1,7 @@
 class RepoNavigator {
   constructor() {
-    this.baseApiUrl = "https://api.github.com/repos/Eclectic-Wind/The-Megastructure-Archives/contents";
+    this.baseApiUrl =
+      "https://api.github.com/repos/Eclectic-Wind/The-Megastructure-Archives/contents";
     this.container = document.getElementById("repo-navigator-container");
     this.currentPath = [];
     this.markedAvailable = typeof marked !== "undefined";
@@ -16,7 +17,7 @@ class RepoNavigator {
     this.cachedResults = new Map();
     this.contentCache = new Map();
     this.fileCache = new Map();
-    this.cacheMaxAge = 5 * 60 * 1000; // 5 minutes
+    this.cacheMaxAge = 5 * 60 * 1000;
     this.ignoredFiles = [".gitattributes", ".gitignore", ".git"];
     this.baseUrl = "#archives/";
   }
@@ -27,14 +28,14 @@ class RepoNavigator {
       return;
     }
     this.createUI();
-    window.addEventListener('popstate', this.handleNavigation.bind(this));
-    window.addEventListener('hashchange', this.handleNavigation.bind(this));
+    window.addEventListener("popstate", this.handleNavigation.bind(this));
+    window.addEventListener("hashchange", this.handleNavigation.bind(this));
     this.handleNavigation();
   }
 
   handleNavigation() {
     const hash = window.location.hash;
-    if (!hash || hash === '#') {
+    if (!hash || hash === "#") {
       this.fetchContents();
     } else if (hash.startsWith(this.baseUrl)) {
       const path = hash.slice(this.baseUrl.length);
@@ -62,7 +63,13 @@ class RepoNavigator {
     this.searchBar = document.getElementById("repo-search");
     this.searchResults = document.getElementById("search-results");
 
-    if (!this.breadcrumb || !this.contentList || !this.fileContent || !this.searchBar || !this.searchResults) {
+    if (
+      !this.breadcrumb ||
+      !this.contentList ||
+      !this.fileContent ||
+      !this.searchBar ||
+      !this.searchResults
+    ) {
       throw new Error("Failed to create UI elements");
     }
 
@@ -73,18 +80,22 @@ class RepoNavigator {
     const cacheKey = path || "root";
     const cachedContent = this.contentCache.get(cacheKey);
 
-    if (cachedContent && Date.now() - cachedContent.timestamp < this.cacheMaxAge) {
+    if (
+      cachedContent &&
+      Date.now() - cachedContent.timestamp < this.cacheMaxAge
+    ) {
       this.currentContents = cachedContent.data;
       this.displayContents(this.currentContents);
       return;
     }
 
     fetch(path ? `${this.baseApiUrl}/${path}` : this.baseApiUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         this.currentContents = data;
         this.contentCache.set(cacheKey, {
           data: this.currentContents,
@@ -92,9 +103,11 @@ class RepoNavigator {
         });
         this.displayContents(this.currentContents);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error fetching contents:", error);
-        this.showError("Error loading repository contents. Please try again later.");
+        this.showError(
+          "Error loading repository contents. Please try again later."
+        );
       });
   }
 
@@ -103,8 +116,8 @@ class RepoNavigator {
     this.hideFileContent();
     this.hideSearchResults();
     contents
-      .filter(item => !this.shouldIgnoreFile(item.name))
-      .forEach(item => this.createContentItem(item));
+      .filter((item) => !this.shouldIgnoreFile(item.name))
+      .forEach((item) => this.createContentItem(item));
     this.updateBreadcrumb();
   }
 
@@ -115,14 +128,17 @@ class RepoNavigator {
   createContentItem(item) {
     const itemElement = document.createElement("div");
     itemElement.className = "repo-item";
-    const icon = item.type === "dir" ? '<i class="fas fa-folder"></i>' : '<i class="fas fa-file"></i>';
+    const icon =
+      item.type === "dir"
+        ? '<i class="fas fa-folder"></i>'
+        : '<i class="fas fa-file"></i>';
     const truncatedName = this.truncateString(item.name, 30);
 
     itemElement.innerHTML = `${icon} <span class="${item.type}">${truncatedName}</span>`;
 
     if (item.type === "file") {
       this.fetchFileContent(item)
-        .then(content => {
+        .then((content) => {
           const frontmatter = this.extractFrontmatter(content);
           if (frontmatter && frontmatter.modified) {
             const formattedDate = this.formatDateShort(frontmatter.modified);
@@ -135,7 +151,7 @@ class RepoNavigator {
             this.addTagsToItem(itemElement, frontmatter);
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error processing file content:", error);
           const errorElement = document.createElement("span");
           errorElement.className = "error-indicator";
@@ -145,7 +161,9 @@ class RepoNavigator {
     }
 
     itemElement.addEventListener("click", () => {
-      item.type === "dir" ? this.navigateToFolder(item.path) : this.showFileContent(item);
+      item.type === "dir"
+        ? this.navigateToFolder(item.path)
+        : this.showFileContent(item);
     });
     this.contentList.appendChild(itemElement);
   }
@@ -188,14 +206,14 @@ class RepoNavigator {
 
   showFileContent(file) {
     this.fetchFileContent(file)
-      .then(content => {
+      .then((content) => {
         const frontmatter = this.extractFrontmatter(content);
         content = this.removeFrontmatter(content);
         this.hideNavigator();
         this.renderFileContent(file, content, frontmatter);
         this.updateUrl(file.path);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error fetching file content:", error);
         this.showError("Error loading file content. Please try again later.");
       });
@@ -205,16 +223,20 @@ class RepoNavigator {
     const cacheKey = file.path;
     const cachedContent = this.fileCache.get(cacheKey);
 
-    if (cachedContent && Date.now() - cachedContent.timestamp < this.cacheMaxAge) {
+    if (
+      cachedContent &&
+      Date.now() - cachedContent.timestamp < this.cacheMaxAge
+    ) {
       return Promise.resolve(cachedContent.data);
     }
 
     return fetch(file.download_url)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
         return response.text();
       })
-      .then(content => {
+      .then((content) => {
         if (content.startsWith("version https://git-lfs.github.com/spec/v1")) {
           return this.fetchLFSContent(file);
         }
@@ -228,30 +250,30 @@ class RepoNavigator {
 
   fetchLFSContent(file) {
     const lfsUrl = `https://media.githubusercontent.com/media/Eclectic-Wind/The-Megastructure-Archives/main/${file.path}`;
-    return fetch(lfsUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.text();
-      });
+    return fetch(lfsUrl).then((response) => {
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      return response.text();
+    });
   }
   formatDateLong(dateString) {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        throw new Error('Invalid date');
+        throw new Error("Invalid date");
       }
-      return date.toLocaleString(undefined, { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short'
+      return date.toLocaleString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
       });
     } catch (error) {
-      console.error('Error formatting date:', dateString, error);
-      return dateString; // Return the original string if parsing fails
+      console.error("Error formatting date:", dateString, error);
+      return dateString;
     }
   }
 
@@ -261,7 +283,7 @@ class RepoNavigator {
       frontmatterHtml = '<div class="frontmatter-metadata">';
       if (frontmatter.tags && frontmatter.tags.length > 0) {
         const tagLinks = frontmatter.tags
-          .map(tag => `<a href="#" class="tag-link">${tag}</a>`)
+          .map((tag) => `<a href="#" class="tag-link">${tag}</a>`)
           .join(", ");
         frontmatterHtml += `<p class="frontmatter-tags">Tags: ${tagLinks}</p>`;
       }
@@ -299,7 +321,7 @@ class RepoNavigator {
 
     this.fileContent.style.display = "block";
 
-    this.fileContent.querySelectorAll(".tag-link").forEach(tagLink => {
+    this.fileContent.querySelectorAll(".tag-link").forEach((tagLink) => {
       tagLink.addEventListener("click", (e) => {
         e.preventDefault();
         const tagText = e.target.textContent;
@@ -315,7 +337,7 @@ class RepoNavigator {
     if (match) {
       const frontmatterString = match[1];
       const frontmatter = {};
-      frontmatterString.split("\n").forEach(line => {
+      frontmatterString.split("\n").forEach((line) => {
         const colonIndex = line.indexOf(":");
         if (colonIndex !== -1) {
           const key = line.slice(0, colonIndex).trim();
@@ -326,7 +348,7 @@ class RepoNavigator {
             frontmatter[key] = value
               .replace(/[\[\]]/g, "")
               .split(",")
-              .map(tag => tag.trim());
+              .map((tag) => tag.trim());
           } else {
             frontmatter[key] = value;
           }
@@ -363,7 +385,7 @@ class RepoNavigator {
   updateBreadcrumb(currentFile = null) {
     this.breadcrumb.innerHTML = `<span class="breadcrumb-item" data-path=""><i class="fas fa-folder"></i> Archives</span>`;
     let currentPathString = "";
-    this.currentPath.forEach(folder => {
+    this.currentPath.forEach((folder) => {
       currentPathString += `/${folder}`;
       this.breadcrumb.innerHTML += ` / <span class="breadcrumb-item" data-path="${currentPathString}">${folder}</span>`;
     });
@@ -374,7 +396,7 @@ class RepoNavigator {
   }
 
   addBreadcrumbListeners() {
-    this.breadcrumb.querySelectorAll(".breadcrumb-item").forEach(item => {
+    this.breadcrumb.querySelectorAll(".breadcrumb-item").forEach((item) => {
       item.addEventListener("click", (e) => {
         const path = e.target.getAttribute("data-path");
         if (path !== null) {
@@ -453,7 +475,11 @@ class RepoNavigator {
         return;
       }
 
-      const results = await this.performDeepSearch("", searchTerm, this.searchAbortController.signal);
+      const results = await this.performDeepSearch(
+        "",
+        searchTerm,
+        this.searchAbortController.signal
+      );
 
       this.cachedResults.set(searchTerm, results);
 
@@ -492,13 +518,19 @@ class RepoNavigator {
           item.name.toLowerCase().includes(searchTerm) ||
           (frontmatter &&
             frontmatter.tags &&
-            frontmatter.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+            frontmatter.tags.some((tag) =>
+              tag.toLowerCase().includes(searchTerm)
+            ))
         ) {
           results.push(item);
         }
       } else if (item.type === "dir") {
         results.push(item);
-        const subResults = await this.performDeepSearch(item.path, searchTerm, signal);
+        const subResults = await this.performDeepSearch(
+          item.path,
+          searchTerm,
+          signal
+        );
         results.push(...subResults);
       }
     }
@@ -510,7 +542,10 @@ class RepoNavigator {
     const cacheKey = path || "root";
     const cachedContent = this.contentCache.get(cacheKey);
 
-    if (cachedContent && Date.now() - cachedContent.timestamp < this.cacheMaxAge) {
+    if (
+      cachedContent &&
+      Date.now() - cachedContent.timestamp < this.cacheMaxAge
+    ) {
       return cachedContent.data;
     }
 
@@ -541,7 +576,7 @@ class RepoNavigator {
 
   buildResultTree(results) {
     const tree = {};
-    results.forEach(item => {
+    results.forEach((item) => {
       const parts = item.path.split("/");
       let currentPath = "";
       parts.forEach((part, index) => {
@@ -562,7 +597,7 @@ class RepoNavigator {
 
     const sortedPaths = Object.keys(tree).sort();
 
-    sortedPaths.forEach(path => {
+    sortedPaths.forEach((path) => {
       const item = tree[path];
       const parts = path.split("/");
       const name = parts[parts.length - 1];
@@ -589,7 +624,7 @@ class RepoNavigator {
   }
 
   updateUrl(path) {
-    const newUrl = this.baseUrl + path.replace(/^\//, '');
+    const newUrl = this.baseUrl + path.replace(/^\//, "");
     if (window.location.hash !== newUrl) {
       window.location.hash = newUrl;
     }
@@ -597,12 +632,13 @@ class RepoNavigator {
 
   loadFileFromUrl(path) {
     fetch(`${this.baseApiUrl}/${path}`)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       })
-      .then(file => this.showFileContent(file))
-      .catch(error => {
+      .then((file) => this.showFileContent(file))
+      .catch((error) => {
         console.error("Error loading file from URL:", error);
         this.showError("Error loading file. Please try again later.");
       });
@@ -614,4 +650,3 @@ class RepoNavigator {
     console.log("Cache cleared");
   }
 }
-
