@@ -14,6 +14,7 @@ class SPAHandler {
     this.transitionDuration = 300;
     this.repoNavigator = null;
     this.currentRoute = null;
+    this.lazyLoader = new LazyLoader();
   }
 
   init() {
@@ -58,6 +59,7 @@ class SPAHandler {
       const html = await this.fetchContent(contentUrl);
       this.contentElement.innerHTML = html;
       this.updateCardParallax(route);
+      this.initializeLazyLoading();
       await this.fadeIn();
       this.applyPageSpecificStyles(route);
 
@@ -67,19 +69,29 @@ class SPAHandler {
     } catch (error) {
       console.error("Error loading content:", error);
       this.contentElement.innerHTML = `
-                <div class="error-container" style="display: flex; justify-content: center; align-items: center; height: 90%; width: 100%;">
-                    <p class="error" style="text-align: center; margin: 0; padding: 20px; max-width: 80%;">
-                        This page is either under repair or does not exist
-                    </p>
-                </div>`;
+        <div class="error-container" style="display: flex; justify-content: center; align-items: center; height: 90%; width: 100%;">
+          <p class="error" style="text-align: center; margin: 0; padding: 20px; max-width: 80%;">
+            This page is either under repair or does not exist
+          </p>
+        </div>`;
       this.contentElement.style.opacity = "1";
     }
+  }
+
+  initializeLazyLoading() {
+    const lazyImages = this.contentElement.querySelectorAll("img[data-src]");
+    lazyImages.forEach((img) => this.lazyLoader.observe(img));
+
+    const lazyContents = this.contentElement.querySelectorAll(
+      "[data-lazy-content]"
+    );
+    lazyContents.forEach((content) => this.lazyLoader.observe(content));
   }
 
   async initRepoNavigator() {
     console.log("[SPA] Initializing RepoNavigator");
     if (typeof RepoNavigator === "function") {
-      this.repoNavigator = new RepoNavigator();
+      this.repoNavigator = new RepoNavigator(this.lazyLoader);
       await this.repoNavigator.init();
     } else {
       console.error("RepoNavigator class not found");
@@ -171,7 +183,7 @@ class SPAHandler {
 // Initialize SPA handler
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[SPA] Initializing SPA Handler");
-  const spaHandler = new SPAHandler();
-  spaHandler.init();
-  spaHandler.addMenuListeners();
+  window.spaHandler = new SPAHandler();
+  window.spaHandler.init();
+  window.spaHandler.addMenuListeners();
 });
