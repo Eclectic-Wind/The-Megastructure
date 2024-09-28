@@ -45,11 +45,15 @@ class SPAHandler {
 
   async handleArchivesRoute(subPath) {
     console.log(`[SPA] Handling archives route with subPath: ${subPath}`);
-    await this.loadDynamicContent("archives");
-    await this.initRepoNavigator();
+
+    if (!this.repoNavigator) {
+      await this.loadDynamicContent("archives");
+      await this.initRepoNavigator();
+    }
+
     if (subPath) {
       await this.navigateRepoContent(subPath);
-    } else {
+    } else if (this.repoNavigator) {
       await this.repoNavigator.fetchContents();
     }
   }
@@ -113,7 +117,7 @@ class SPAHandler {
     console.log(`[SPA] Navigating RepoNavigator to: ${subPath}`);
     if (this.repoNavigator) {
       if (subPath.endsWith(".md")) {
-        await this.repoNavigator.loadFileFromUrl(subPath);
+        await this.repoNavigator.handleNavigation();
       } else {
         await this.repoNavigator.navigateToFolder(subPath);
       }

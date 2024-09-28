@@ -278,40 +278,52 @@ class RepoNavigator {
   }
 
   renderFileContent(file, content, frontmatter) {
+    console.log("Rendering file content:", file.name);
+    console.log("Frontmatter:", frontmatter);
+
     let frontmatterHtml = "";
     if (frontmatter) {
+      console.log("Processing frontmatter");
       frontmatterHtml = '<div class="frontmatter-metadata">';
       if (frontmatter.tags && frontmatter.tags.length > 0) {
+        console.log("Processing tags:", frontmatter.tags);
         const tagLinks = frontmatter.tags
           .map((tag) => `<a href="#" class="tag-link">${tag}</a>`)
           .join(", ");
         frontmatterHtml += `<p class="frontmatter-tags">Tags: ${tagLinks}</p>`;
       }
       if (frontmatter.created) {
+        console.log("Processing created date:", frontmatter.created);
         const createdDate = this.formatDateLong(frontmatter.created);
         frontmatterHtml += `<p class="frontmatter-created">Created: ${createdDate}</p>`;
       }
       if (frontmatter.modified) {
+        console.log("Processing modified date:", frontmatter.modified);
         const modifiedDate = this.formatDateLong(frontmatter.modified);
         frontmatterHtml += `<p class="frontmatter-modified">Modified: ${modifiedDate}</p>`;
       }
       for (const [key, value] of Object.entries(frontmatter)) {
         if (!["tags", "created", "modified", "title"].includes(key)) {
+          console.log("Processing additional frontmatter:", key, value);
           frontmatterHtml += `<p class="frontmatter-${key}">${key}: ${value}</p>`;
         }
       }
       frontmatterHtml += "</div>";
     }
 
+    console.log("Updating breadcrumb");
     this.updateBreadcrumb(file.name);
 
     let renderedContent;
     if (file.name.endsWith(".md") && this.markedAvailable) {
+      console.log("Rendering markdown content");
       renderedContent = marked.parse(content);
     } else {
+      console.log("Rendering plain text content");
       renderedContent = `<pre>${this.escapeHtml(content)}</pre>`;
     }
 
+    console.log("Setting file content HTML");
     this.fileContent.innerHTML = `
       ${frontmatterHtml}
       <div class="file-content-body">
@@ -319,16 +331,21 @@ class RepoNavigator {
       </div>
     `;
 
+    console.log("Displaying file content");
     this.fileContent.style.display = "block";
 
+    console.log("Adding event listeners to tag links");
     this.fileContent.querySelectorAll(".tag-link").forEach((tagLink) => {
       tagLink.addEventListener("click", (e) => {
         e.preventDefault();
         const tagText = e.target.textContent;
+        console.log("Tag clicked:", tagText);
         this.searchBar.value = tagText;
         this.handleAutoSearch();
       });
     });
+
+    console.log("File content rendering complete");
   }
 
   extractFrontmatter(content) {
