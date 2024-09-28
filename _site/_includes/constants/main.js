@@ -12,6 +12,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const dataAttributeHandler = new DataAttributeHandler();
   dataAttributeHandler.init();
 
+  // Add this new code to interact with SPAHandler
+  if (window.spaHandler) {
+    window.spaHandler.onRouteChange = () => {
+      dataAttributeHandler.hideAttribute();
+    };
+  }
+
   function hideLoadingScreen() {
     loadingScreen.style.opacity = "0";
     setTimeout(() => {

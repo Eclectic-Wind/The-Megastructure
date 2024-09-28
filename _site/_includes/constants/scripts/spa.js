@@ -15,6 +15,7 @@ class SPAHandler {
     this.repoNavigator = null;
     this.currentRoute = null;
     this.lazyLoader = new LazyLoader();
+    this.onRouteChange = null; // Add this line
   }
 
   init() {
@@ -37,6 +38,9 @@ class SPAHandler {
 
     this.updateActiveMenuDot(route || this.defaultRoute);
     this.currentRoute = route || this.defaultRoute;
+
+    // Add this line to call the onRouteChange callback
+    if (this.onRouteChange) this.onRouteChange();
   }
 
   async handleArchivesRoute(subPath) {
