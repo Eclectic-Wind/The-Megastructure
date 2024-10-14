@@ -20,6 +20,7 @@ class RepoNavigator {
     this.cacheMaxAge = 5 * 60 * 1000;
     this.ignoredFiles = [".gitattributes", ".gitignore", ".git"];
     this.baseUrl = "#archives/";
+    this.transitionDuration = 150; // Duration of transition in milliseconds
   }
 
   init() {
@@ -74,6 +75,21 @@ class RepoNavigator {
     }
 
     this.searchBar.addEventListener("input", () => this.handleAutoSearch());
+
+    // Add transition styles
+    const style = document.createElement("style");
+    style.textContent = `
+      #repo-content-list, #search-results, #file-content {
+        transition: opacity ${this.transitionDuration}ms ease-in-out;
+      }
+      .fade-out {
+        opacity: 0;
+      }
+      .fade-in {
+        opacity: 1;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   fetchContents(path = "") {
@@ -112,13 +128,16 @@ class RepoNavigator {
   }
 
   displayContents(contents) {
-    this.contentList.innerHTML = "";
-    this.hideFileContent();
-    this.hideSearchResults();
-    contents
-      .filter((item) => !this.shouldIgnoreFile(item.name))
-      .forEach((item) => this.createContentItem(item));
-    this.updateBreadcrumb();
+    this.fadeOut(this.contentList).then(() => {
+      this.contentList.innerHTML = "";
+      this.hideFileContent();
+      this.hideSearchResults();
+      contents
+        .filter((item) => !this.shouldIgnoreFile(item.name))
+        .forEach((item) => this.createContentItem(item));
+      this.updateBreadcrumb();
+      return this.fadeIn(this.contentList);
+    });
   }
 
   shouldIgnoreFile(filename) {
@@ -205,13 +224,15 @@ class RepoNavigator {
   }
 
   showFileContent(file) {
-    this.fetchFileContent(file)
+    this.fadeOut(this.contentList)
+      .then(() => this.fetchFileContent(file))
       .then((content) => {
         const frontmatter = this.extractFrontmatter(content);
         content = this.removeFrontmatter(content);
         this.hideNavigator();
         this.renderFileContent(file, content, frontmatter);
         this.updateUrl(file.path);
+        return this.fadeIn(this.fileContent);
       })
       .catch((error) => {
         console.error("Error fetching file content:", error);
@@ -390,22 +411,35 @@ class RepoNavigator {
   }
 
   navigateToFolder(path) {
-    this.currentPath = path.split("/").filter(Boolean);
-    this.fetchContents(path);
-    this.hideFileContent();
-    this.hideSearchResults();
-    this.showNavigator();
-    this.searchBar.value = "";
-    this.updateUrl(path);
+    // Immediately update the breadcrumb
+    this.updateBreadcrumb(path);
+
+    this.fadeOut(this.fileContent).then(() => {
+      this.currentPath = path.split("/").filter(Boolean);
+      this.hideFileContent();
+      this.hideSearchResults();
+      this.showNavigator();
+      this.searchBar.value = "";
+      this.updateUrl(path);
+
+      // Now fetch the contents
+      this.fetchContents(path).then(() => {
+        // After fetching, fade in the content
+        this.fadeIn(this.contentList);
+      });
+    });
   }
 
-  updateBreadcrumb(currentFile = null) {
+  updateBreadcrumb(path = null, currentFile = null) {
     this.breadcrumb.innerHTML = `<span class="breadcrumb-item" data-path=""><i class="fas fa-folder"></i> Archives</span>`;
-    let currentPathString = "";
-    this.currentPath.forEach((folder) => {
-      currentPathString += `/${folder}`;
-      this.breadcrumb.innerHTML += ` / <span class="breadcrumb-item" data-path="${currentPathString}">${folder}</span>`;
-    });
+    if (path) {
+      const parts = path.split("/").filter(Boolean);
+      let currentPath = "";
+      parts.forEach((folder) => {
+        currentPath += `/${folder}`;
+        this.breadcrumb.innerHTML += ` / <span class="breadcrumb-item" data-path="${currentPath}">${folder}</span>`;
+      });
+    }
     if (currentFile) {
       this.breadcrumb.innerHTML += ` / <span class="breadcrumb-item current-file">${currentFile}</span>`;
     }
@@ -417,8 +451,14 @@ class RepoNavigator {
       item.addEventListener("click", (e) => {
         const path = e.target.getAttribute("data-path");
         if (path !== null) {
+          // Immediately update breadcrumb
+          this.updateBreadcrumb(path.slice(1));
+          // Then navigate
           this.navigateToFolder(path.slice(1));
         } else {
+          // Immediately update breadcrumb
+          this.updateBreadcrumb();
+          // Then navigate to root
           this.navigateToFolder("");
         }
       });
@@ -665,5 +705,27 @@ class RepoNavigator {
     this.contentCache.clear();
     this.fileCache.clear();
     console.log("Cache cleared");
+  }
+
+  fadeOut(element) {
+    return new Promise((resolve) => {
+      element.classList.add("fade-out");
+      element.classList.remove("fade-in");
+      setTimeout(() => {
+        element.style.display = "none";
+        resolve();
+      }, this.transitionDuration);
+    });
+  }
+
+  fadeIn(element) {
+    return new Promise((resolve) => {
+      element.style.display = "block";
+      // Force a reflow to ensure the display change takes effect
+      void element.offsetWidth;
+      element.classList.remove("fade-out");
+      element.classList.add("fade-in");
+      setTimeout(resolve, this.transitionDuration);
+    });
   }
 }

@@ -1,0 +1,56 @@
+<div class="blog">
+  <div class="header">
+    <h2 class="name">Kam.blog</h2>
+  </div>
+  <div class="blog-content">Loading blog posts...</div>
+</div>
+
+<script>
+  async function fetchBlogPosts() {
+    const apiUrl =
+      "https://api.github.com/repos/Eclectic-Wind/The-Megastructure-Archives/contents/blog";
+    const blogContent = document.querySelector(".blog-content");
+
+    try {
+      console.log("Fetching blog posts...");
+      const response = await fetch(apiUrl);
+      console.log("Response status:", response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Fetched data:", data);
+
+      if (data.length === 0) {
+        blogContent.innerHTML = "<p>No blog posts found.</p>";
+        return;
+      }
+
+      blogContent.innerHTML = ""; // Clear loading message
+
+      data.forEach((file) => {
+        if (file.type === "file" && file.name.endsWith(".md")) {
+          const postElement = document.createElement("div");
+          postElement.className = "blog-post";
+          postElement.innerHTML = `
+            <h3>${file.name.replace(".md", "")}</h3>
+            <a href="${file.html_url}" target="_blank">Read Post</a>
+          `;
+          blogContent.appendChild(postElement);
+        }
+      });
+
+      if (blogContent.children.length === 0) {
+        blogContent.innerHTML =
+          "<p>No markdown files found in the blog directory.</p>";
+      }
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+      blogContent.innerHTML = `<p>Error loading blog posts: ${error.message}. Please try again later.</p>`;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", fetchBlogPosts);
+</script>

@@ -3,9 +3,10 @@ class SPAHandler {
     this.contentElement = document.getElementById("dynamic-content");
     this.routes = {
       home: "_includes/pages/home.html",
+      blog: "_includes/pages/blog.html",
+
       arts: "_includes/pages/arts.html",
       philosophy: "_includes/pages/philosophy.html",
-      writing: "_includes/pages/writing.html",
       archives: "_includes/pages/archives.html",
       bio: "_includes/pages/bio-more.html",
     };
