@@ -12,11 +12,80 @@ class SPAHandler {
     };
     this.defaultRoute = "home";
     this.errorPage = "_includes/pages/404.html";
-    this.transitionDuration = 300;
+    this.transitionDuration = 180;
     this.repoNavigator = null;
     this.currentRoute = null;
     this.lazyLoader = new LazyLoader();
-    this.onRouteChange = null; // Add this line
+    this.onRouteChange = null;
+    this.archivesDependenciesLoaded = false;
+    this.archivesScripts = {
+      marked: "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
+      navigator: "_includes/constants/scripts/repoNavigator.js",
+    };
+  }
+
+  loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existingScript = document.querySelector(`script[src="${src}"]`);
+
+      if (existingScript) {
+        if (existingScript.dataset.loaded === "true") {
+          resolve();
+          return;
+        }
+
+        existingScript.addEventListener("load", () => resolve(), { once: true });
+        existingScript.addEventListener(
+          "error",
+          () => reject(new Error(`Failed to load script: ${src}`)),
+          { once: true }
+        );
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.defer = true;
+
+      script.addEventListener(
+        "load",
+        () => {
+          script.dataset.loaded = "true";
+          resolve();
+        },
+        { once: true }
+      );
+      script.addEventListener(
+        "error",
+        () => reject(new Error(`Failed to load script: ${src}`)),
+        { once: true }
+      );
+
+      document.body.appendChild(script);
+    });
+  }
+
+  async ensureArchivesDependenciesLoaded() {
+    if (this.archivesDependenciesLoaded) {
+      return;
+    }
+
+    const scriptsToLoad = [];
+
+    if (typeof marked === "undefined") {
+      scriptsToLoad.push(this.loadScript(this.archivesScripts.marked));
+    }
+
+    if (typeof RepoNavigator === "undefined") {
+      scriptsToLoad.push(this.loadScript(this.archivesScripts.navigator));
+    }
+
+    if (scriptsToLoad.length > 0) {
+      await Promise.all(scriptsToLoad);
+    }
+
+    this.archivesDependenciesLoaded =
+      typeof marked !== "undefined" && typeof RepoNavigator !== "undefined";
   }
 
   init() {
@@ -40,7 +109,6 @@ class SPAHandler {
     this.updateActiveMenuDot(route || this.defaultRoute);
     this.currentRoute = route || this.defaultRoute;
 
-    // Add this line to call the onRouteChange callback
     if (this.onRouteChange) this.onRouteChange();
   }
 
@@ -64,13 +132,17 @@ class SPAHandler {
     const contentUrl = this.routes[route] || this.errorPage;
 
     try {
-      await this.fadeOut();
-      const html = await this.fetchContent(contentUrl);
-      this.contentElement.innerHTML = html;
       this.updateCardParallax(route);
+      this.applyPageSpecificStyles(route);
+
+      const htmlPromise = this.fetchContent(contentUrl);
+      await this.fadeOut();
+
+      const html = await htmlPromise;
+      this.contentElement.innerHTML = html;
+      await this.executeEmbeddedScripts(this.contentElement);
       this.initializeLazyLoading();
       await this.fadeIn();
-      this.applyPageSpecificStyles(route);
 
       if (this.currentRoute === "archives" && route !== "archives") {
         this.cleanupRepoNavigator();
@@ -87,6 +159,42 @@ class SPAHandler {
     }
   }
 
+  async executeEmbeddedScripts(container) {
+    const scripts = Array.from(container.querySelectorAll("script"));
+
+    for (const oldScript of scripts) {
+      const newScript = document.createElement("script");
+
+      Array.from(oldScript.attributes).forEach((attribute) => {
+        newScript.setAttribute(attribute.name, attribute.value);
+      });
+
+      if (!oldScript.src) {
+        newScript.textContent = oldScript.textContent;
+      }
+
+      const scriptReady = new Promise((resolve) => {
+        if (!oldScript.src) {
+          resolve();
+          return;
+        }
+
+        newScript.addEventListener("load", resolve, { once: true });
+        newScript.addEventListener(
+          "error",
+          () => {
+            console.error(`[SPA] Failed to load script: ${oldScript.src}`);
+            resolve();
+          },
+          { once: true }
+        );
+      });
+
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+      await scriptReady;
+    }
+  }
+
   initializeLazyLoading() {
     const lazyImages = this.contentElement.querySelectorAll("img[data-src]");
     lazyImages.forEach((img) => this.lazyLoader.observe(img));
@@ -99,6 +207,9 @@ class SPAHandler {
 
   async initRepoNavigator() {
     console.log("[SPA] Initializing RepoNavigator");
+
+    await this.ensureArchivesDependenciesLoaded();
+
     if (typeof RepoNavigator === "function") {
       this.repoNavigator = new RepoNavigator(this.lazyLoader);
       await this.repoNavigator.init();
@@ -110,6 +221,9 @@ class SPAHandler {
   cleanupRepoNavigator() {
     console.log("[SPA] Cleaning up RepoNavigator");
     if (this.repoNavigator) {
+      if (typeof this.repoNavigator.destroy === "function") {
+        this.repoNavigator.destroy();
+      }
       this.repoNavigator = null;
     }
   }
@@ -128,18 +242,38 @@ class SPAHandler {
   }
 
   fadeOut() {
+    if (!this.contentElement) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve) => {
+      const done = () => {
+        this.contentElement.removeEventListener("transitionend", onTransitionEnd);
+        resolve();
+      };
+
+      const onTransitionEnd = (event) => {
+        if (event.target === this.contentElement && event.propertyName === "opacity") {
+          done();
+        }
+      };
+
+      this.contentElement.addEventListener("transitionend", onTransitionEnd);
       this.contentElement.style.opacity = "0";
-      setTimeout(resolve, this.transitionDuration);
+      setTimeout(done, this.transitionDuration + 40);
     });
   }
 
   fadeIn() {
+    if (!this.contentElement) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve) => {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         this.contentElement.style.opacity = "1";
         resolve();
-      }, 50);
+      });
     });
   }
 
@@ -174,11 +308,13 @@ class SPAHandler {
 
   updateCardParallax(route) {
     const isHomePage = route === "home";
-    if (typeof CardParallax !== "undefined") {
+    const cardParallax = window.CardParallax;
+
+    if (cardParallax) {
       if (isHomePage) {
-        CardParallax.enable();
+        cardParallax.enable();
       } else {
-        CardParallax.disable();
+        cardParallax.disable();
       }
     }
   }

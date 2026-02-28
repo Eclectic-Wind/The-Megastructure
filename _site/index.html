@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kam's megastructure.</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
@@ -36,11 +36,17 @@
           </div>
         </div>
         <div class="background-container">
-          <img
+          <video
             class="background"
-            src="_includes/assets/images/card_bg.gif"
-            alt="card background image"
-          />
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            aria-label="card background video"
+          >
+            <source src="_includes/assets/images/card_bg.mp4" type="video/mp4" />
+          </video>
           <div class="links">
             <a href="https://discordapp.com/users/178093021131177984">
               <i class="fab fa-discord"></i>
@@ -64,10 +70,9 @@
         <div class="profile-container">
           <div class="profile">
             <div class="profile-img">
-              <img
-                src="_includes/assets/images/anemos_pfp_glitch.gif"
-                alt="profile image"
-              />
+              <video autoplay muted loop playsinline preload="metadata" aria-label="profile video">
+                <source src="_includes/assets/images/anemos_pfp_glitch.mp4" type="video/mp4" />
+              </video>
             </div>
           </div>
         </div>
@@ -103,7 +108,5 @@
     <script type="module" src="_includes/constants/main.js"></script>
     <script src="_includes/constants/scripts/lazyLoader.js"></script>
     <script src="_includes/constants/scripts/spa.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="_includes/constants/scripts/repoNavigator.js"></script>
   </body>
 </html>

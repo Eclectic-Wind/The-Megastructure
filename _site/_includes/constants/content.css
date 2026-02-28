@@ -172,12 +172,12 @@ p {
 }
 
 #repo-breadcrumb {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.95rem;
   position: relative;
   align-self: center;
-  width: 70%;
+  width: 88%;
 }
 
 .breadcrumb-item {
@@ -190,6 +190,7 @@ p {
   width: 88%;
   height: 40px;
   padding: 0 15px;
+  margin-bottom: 1.05rem;
   background-color: transparent;
   border-radius: 20px;
   font-size: 16px;
@@ -219,9 +220,17 @@ p {
   width: 96%;
   position: relative;
   left: 1rem;
-  padding-bottom: 0.5rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  padding-bottom: 0.7rem;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.repo-item i,
+.search-result-item i {
+  font-size: 1.1rem;
+  margin-right: 0.35rem;
 }
 
 .repo-item .file,
@@ -251,6 +260,8 @@ p {
 .modified-date {
   position: absolute;
   right: 0px;
+  font-size: 0.85rem;
+  opacity: 0.85;
 }
 
 .search-result-tree li {

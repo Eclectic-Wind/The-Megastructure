@@ -21,11 +21,14 @@
   --returnEasing: cubic-bezier(0.445, 0.05, 0.55, 0.95);
   --hoverEasing: cubic-bezier(0.23, 1, 0.32, 1);
   --stage1-0: translateY(30vh) rotate(720deg);
-  --stage1-1: translateY(-34vh) rotate(1deg);
-  --stage1-2: translateY(-33vh) rotate(0deg);
-  --stage1-3: translateY(31vh) rotate(719deg);
+  --stage1-1: translateY(-39vh) rotate(1deg);
+  --stage1-2: translateY(-37vh) rotate(0deg);
+  --stage1-3: translateY(32vh) rotate(719deg);
   --border-radius: 10px;
-  --page-home-transition: 1s ease;
+  --page-home-transition: 0.42s cubic-bezier(0.23, 1, 0.32, 1);
+  --control-slide-duration: 0.14s;
+  --mode-icon-animation-duration: 0.35s;
+  --menu-label-transition-duration: 0.16s;
 }
 
 ::-webkit-scrollbar {
@@ -117,10 +120,18 @@ html.dark-mode body {
     height var(--page-home-transition),
     margin-bottom var(--page-home-transition);
   caret-color: transparent;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .card-container:hover {
   transition: var(--transition), transform 0.5s var(--returnEasing),
+    height var(--page-home-transition),
+    margin-bottom var(--page-home-transition);
+}
+
+.card-container.parallax-active {
+  transition: var(--transition), transform 0s linear,
     height var(--page-home-transition),
     margin-bottom var(--page-home-transition);
 }
@@ -152,16 +163,22 @@ html.dark-mode body {
 .background {
   position: absolute;
   left: -2in;
-  top: -2.5in;
-  width: 200%;
+  top: -10in;
+  width: 300%;
   aspect-ratio: 1 / 1;
   height: auto;
   filter: brightness(1.3);
   transition: var(--transition), transform 0.2s var(--transition-easing);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .background:hover {
   transition: var(--transition), transform 0.2s var(--transition-easing);
+}
+
+.card-container.parallax-active .background {
+  transition: var(--transition), transform 0s linear;
 }
 
 html.dark-mode .background {
@@ -241,6 +258,14 @@ html.light-mode .content-container {
     box-shadow 2s ease, height var(--page-home-transition),
     bottom var(--page-home-transition), width var(--page-home-transition);
   border: 2px solid transparent;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.card-container.parallax-active .content {
+  transition: var(--transition), transform 0s linear, box-shadow 2s ease,
+    height var(--page-home-transition), bottom var(--page-home-transition),
+    width var(--page-home-transition);
 }
 
 html.light-mode .content {
@@ -264,11 +289,12 @@ html.dark-mode .content {
   position: absolute;
   pointer-events: none;
   opacity: 0;
-  transition: opacity var(--transition-duration) var(--transition-easing),
-    background var(--transition-duration) var(--transition-easing);
+  transition: none;
   margin-left: -6%;
+  margin-top: -10%;
   z-index: 4;
   border-radius: 10px;
+  will-change: transform, opacity;
   /* Match the content's border radius */
 }
 
@@ -322,6 +348,8 @@ html.dark-mode .content-spotlight {
   height: 92%;
   aspect-ratio: 1 / 1;
   transition: border var(--page-home-transition), border-radius 0.5s ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .dark-mode .profile,
@@ -331,9 +359,11 @@ html.dark-mode .content-spotlight {
   transition: border 2s ease, border-radius 0.5s ease;
 }
 
-.profile img {
+.profile img,
+.profile video {
   width: 110%;
   height: 110%;
+  display: block;
   object-fit: contain;
   object-position: center;
   transform: translate(-1%, -5%);
@@ -347,19 +377,48 @@ html.dark-mode .content-spotlight {
   border-left: 3vw solid rgba(255, 0, 0, 0);
   background-color: transparent;
   left: -5%;
+  transform: translateX(0);
   z-index: 1;
-  transition: left 0.2s var(--transition-easing),
+  transition: transform var(--control-slide-duration) var(--hoverEasing),
     background-color var(--transition-duration) var(--transition-easing),
     border-color var(--transition-duration) var(--transition-easing);
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
+  will-change: transform;
 }
 
 .toggle-board:hover {
-  left: -15%;
+  transform: translate3d(-60%, 0, 0);
   border-left: 3vw solid rgba(255, 2, 2, 0);
+}
+
+.toggle-board::after {
+  content: "TAB";
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  padding: 4px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--dark-text);
+  background-color: var(--dark-container);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--menu-label-transition-duration) var(--transition-easing);
+}
+
+html.light-mode .toggle-board::after {
+  color: var(--light-text);
+  background-color: var(--light-container);
+}
+
+.toggle-board:hover::after {
+  opacity: 0;
 }
 
 .toggle-board i {
@@ -390,6 +449,8 @@ html.dark-mode .content-spotlight {
   z-index: 3;
   transform: bottom 5s ease;
   transition: color 0.2s ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .toggle-board .fa-circle {
@@ -407,27 +468,27 @@ html.dark-mode .content-spotlight {
 
 /* Animations */
 html.light-mode .toggle-board .fa-moon {
-  animation: hideMoon 0.7s forwards;
+  animation: hideMoon var(--mode-icon-animation-duration) forwards;
 }
 
 html.light-mode .toggle-board .fa-sun {
-  animation: showSun 0.7s forwards;
+  animation: showSun var(--mode-icon-animation-duration) forwards;
 }
 
 html.light-mode .toggle-board .fa-circle {
-  animation: moveCircleUp 0.7s forwards;
+  animation: moveCircleUp var(--mode-icon-animation-duration) forwards;
 }
 
 html.dark-mode .toggle-board .fa-moon {
-  animation: showMoon 0.7s forwards;
+  animation: showMoon var(--mode-icon-animation-duration) forwards;
 }
 
 html.dark-mode .toggle-board .fa-sun {
-  animation: hideSun 0.7s forwards;
+  animation: hideSun var(--mode-icon-animation-duration) forwards;
 }
 
 html.dark-mode .toggle-board .fa-circle {
-  animation: moveCircleDown 0.7s forwards;
+  animation: moveCircleDown var(--mode-icon-animation-duration) forwards;
 }
 
 @keyframes hideMoon {
@@ -543,17 +604,46 @@ html.dark-mode .toggle-board .fa-circle {
   height: 50%;
   width: 30%;
   left: -30%;
+  transform: translateX(0);
   padding: 5% 0%;
   border-right: 4vw solid transparent;
-  transition: left 0.2s ease;
+  transition: transform var(--control-slide-duration) var(--hoverEasing);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-around;
+  will-change: transform;
 }
 
 .menu:hover {
-  left: 0%;
+  transform: translateX(50%);
+}
+
+.menu::before {
+  content: "TAB";
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  padding: 4px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--dark-text);
+  background-color: var(--dark-container);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--menu-label-transition-duration) var(--transition-easing);
+}
+
+html.light-mode .menu::before {
+  color: var(--light-text);
+  background-color: var(--light-container);
+}
+
+.menu:hover::before {
+  opacity: 0;
 }
 
 .menu-icon {
@@ -563,8 +653,11 @@ html.dark-mode .toggle-board .fa-circle {
   position: relative;
   cursor: pointer;
   opacity: 0.8;
-  transition: color 0.3s ease-in-out, opacity 0.01s ease-in, font-size 0.5s ease;
+  transform: scale(1);
+  transition: color var(--transition-duration) var(--transition-easing),
+    opacity 0.12s ease-in, transform var(--menu-label-transition-duration) ease;
   caret-color: transparent;
+  will-change: transform;
 }
 
 .light-mode .menu-icon {
@@ -572,12 +665,12 @@ html.dark-mode .toggle-board .fa-circle {
 }
 
 .menu-icon:hover {
-  font-size: 20px;
+  transform: scale(1.2);
   opacity: 1;
 }
 
 .menu-icon.active {
-  font-size: 25px;
+  transform: scale(1.35);
   opacity: 1;
 }
 
@@ -602,7 +695,8 @@ html.dark-mode .toggle-board .fa-circle {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease-in-out, left 0.3s ease;
+  transition: opacity var(--menu-label-transition-duration) ease-in-out,
+    left var(--menu-label-transition-duration) ease;
 }
 
 .light-mode .menu-icon::after {
@@ -694,6 +788,8 @@ html.dark-mode footer {
   background-color: var(--light-accent);
   border-radius: 50%;
   animation: pulse 1.5s infinite ease-in-out;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .dark-mode .loading-dots .dot {

@@ -17,20 +17,34 @@ class RepoNavigator {
     this.cachedResults = new Map();
     this.contentCache = new Map();
     this.fileCache = new Map();
+    this.itemMetadataCache = new Map();
     this.cacheMaxAge = 5 * 60 * 1000;
     this.ignoredFiles = [".gitattributes", ".gitignore", ".git"];
     this.baseUrl = "#archives/";
     this.transitionDuration = 150; // Duration of transition in milliseconds
+    this.isInitialized = false;
+    this.handleNavigationBound = this.handleNavigation.bind(this);
+    this.handleAutoSearchBound = this.handleAutoSearch.bind(this);
+    this.transitionStyleElement = null;
+    this.metadataQueue = [];
+    this.activeMetadataRequests = 0;
+    this.maxMetadataConcurrent = 2;
   }
 
   init() {
+    if (this.isInitialized) {
+      return;
+    }
+
     if (!this.container) {
       console.error("repo-navigator-container not found in the DOM");
       return;
     }
+
     this.createUI();
-    window.addEventListener("popstate", this.handleNavigation.bind(this));
-    window.addEventListener("hashchange", this.handleNavigation.bind(this));
+    window.addEventListener("popstate", this.handleNavigationBound);
+    window.addEventListener("hashchange", this.handleNavigationBound);
+    this.isInitialized = true;
     this.handleNavigation();
   }
 
@@ -74,22 +88,56 @@ class RepoNavigator {
       throw new Error("Failed to create UI elements");
     }
 
-    this.searchBar.addEventListener("input", () => this.handleAutoSearch());
+    this.searchBar.addEventListener("input", this.handleAutoSearchBound);
 
-    // Add transition styles
-    const style = document.createElement("style");
-    style.textContent = `
-      #repo-content-list, #search-results, #file-content {
-        transition: opacity ${this.transitionDuration}ms ease-in-out;
-      }
-      .fade-out {
-        opacity: 0;
-      }
-      .fade-in {
-        opacity: 1;
-      }
-    `;
-    document.head.appendChild(style);
+    if (!this.transitionStyleElement) {
+      this.transitionStyleElement = document.createElement("style");
+      this.transitionStyleElement.textContent = `
+        #repo-content-list, #search-results, #file-content {
+          transition: opacity ${this.transitionDuration}ms ease-in-out;
+        }
+        .fade-out {
+          opacity: 0;
+        }
+        .fade-in {
+          opacity: 1;
+        }
+      `;
+      document.head.appendChild(this.transitionStyleElement);
+    }
+  }
+
+  destroy() {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    window.removeEventListener("popstate", this.handleNavigationBound);
+    window.removeEventListener("hashchange", this.handleNavigationBound);
+
+    if (this.searchBar) {
+      this.searchBar.removeEventListener("input", this.handleAutoSearchBound);
+    }
+
+    if (this.searchAbortController) {
+      this.searchAbortController.abort();
+      this.searchAbortController = null;
+    }
+
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
+    }
+
+    if (this.transitionStyleElement) {
+      this.transitionStyleElement.remove();
+      this.transitionStyleElement = null;
+    }
+
+    this.metadataQueue = [];
+    this.activeMetadataRequests = 0;
+
+    this.isInitialized = false;
   }
 
   fetchContents(path = "") {
@@ -102,10 +150,10 @@ class RepoNavigator {
     ) {
       this.currentContents = cachedContent.data;
       this.displayContents(this.currentContents);
-      return;
+      return Promise.resolve(this.currentContents);
     }
 
-    fetch(path ? `${this.baseApiUrl}/${path}` : this.baseApiUrl)
+    return fetch(path ? `${this.baseApiUrl}/${path}` : this.baseApiUrl)
       .then((response) => {
         if (!response.ok)
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -118,24 +166,27 @@ class RepoNavigator {
           timestamp: Date.now(),
         });
         this.displayContents(this.currentContents);
+        return this.currentContents;
       })
       .catch((error) => {
         console.error("Error fetching contents:", error);
         this.showError(
           "Error loading repository contents. Please try again later."
         );
+        return [];
       });
   }
 
   displayContents(contents) {
     this.fadeOut(this.contentList).then(() => {
       this.contentList.innerHTML = "";
+      this.metadataQueue = [];
       this.hideFileContent();
       this.hideSearchResults();
       contents
         .filter((item) => !this.shouldIgnoreFile(item.name))
         .forEach((item) => this.createContentItem(item));
-      this.updateBreadcrumb();
+      this.updateBreadcrumb(this.currentPath.join("/"));
       return this.fadeIn(this.contentList);
     });
   }
@@ -155,29 +206,7 @@ class RepoNavigator {
 
     itemElement.innerHTML = `${icon} <span class="${item.type}">${truncatedName}</span>`;
 
-    if (item.type === "file") {
-      this.fetchFileContent(item)
-        .then((content) => {
-          const frontmatter = this.extractFrontmatter(content);
-          if (frontmatter && frontmatter.modified) {
-            const formattedDate = this.formatDateShort(frontmatter.modified);
-            const dateElement = document.createElement("span");
-            dateElement.className = "modified-date";
-            dateElement.textContent = formattedDate || frontmatter.modified;
-            itemElement.appendChild(dateElement);
-          }
-          if (frontmatter) {
-            this.addTagsToItem(itemElement, frontmatter);
-          }
-        })
-        .catch((error) => {
-          console.error("Error processing file content:", error);
-          const errorElement = document.createElement("span");
-          errorElement.className = "error-indicator";
-          errorElement.textContent = "⚠️";
-          itemElement.appendChild(errorElement);
-        });
-    }
+    this.enqueueMetadataLoad(item, itemElement);
 
     itemElement.addEventListener("click", () => {
       item.type === "dir"
@@ -185,6 +214,110 @@ class RepoNavigator {
         : this.showFileContent(item);
     });
     this.contentList.appendChild(itemElement);
+  }
+
+  enqueueMetadataLoad(item, itemElement) {
+    this.metadataQueue.push({ item, itemElement });
+    this.processMetadataQueue();
+  }
+
+  processMetadataQueue() {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    while (
+      this.activeMetadataRequests < this.maxMetadataConcurrent &&
+      this.metadataQueue.length > 0
+    ) {
+      const task = this.metadataQueue.shift();
+      this.activeMetadataRequests += 1;
+
+      this.loadItemMetadata(task.item, task.itemElement)
+        .catch(() => {
+          // Errors are handled in loadItemMetadata.
+        })
+        .finally(() => {
+          this.activeMetadataRequests -= 1;
+          this.processMetadataQueue();
+        });
+    }
+  }
+
+  async loadItemMetadata(item, itemElement) {
+    try {
+      if (!this.isInitialized || !itemElement.isConnected) {
+        return;
+      }
+
+      if (item.type === "file") {
+        const content = await this.fetchFileContent(item);
+
+        if (!this.isInitialized || !itemElement.isConnected) {
+          return;
+        }
+
+        const frontmatter = this.extractFrontmatter(content);
+        if (frontmatter && frontmatter.modified) {
+          const formattedDate = this.formatDateShort(frontmatter.modified);
+          this.appendModifiedDate(itemElement, formattedDate || frontmatter.modified);
+        }
+
+        if (frontmatter) {
+          this.addTagsToItem(itemElement, frontmatter);
+        }
+      } else if (item.type === "dir") {
+        const modifiedDate = await this.fetchPathLastModified(item.path);
+        if (modifiedDate) {
+          this.appendModifiedDate(itemElement, this.formatDateShort(modifiedDate));
+        }
+      }
+    } catch (error) {
+      if (!this.isInitialized || !itemElement.isConnected) {
+        return;
+      }
+
+      console.error("Error processing file content:", error);
+      const errorElement = document.createElement("span");
+      errorElement.className = "error-indicator";
+      errorElement.textContent = "⚠️";
+      itemElement.appendChild(errorElement);
+    }
+  }
+
+  appendModifiedDate(itemElement, dateText) {
+    const dateElement = document.createElement("span");
+    dateElement.className = "modified-date";
+    dateElement.textContent = dateText;
+    itemElement.appendChild(dateElement);
+  }
+
+  async fetchPathLastModified(path) {
+    const cacheKey = `meta:${path}`;
+    const cachedMetadata = this.itemMetadataCache.get(cacheKey);
+
+    if (
+      cachedMetadata &&
+      Date.now() - cachedMetadata.timestamp < this.cacheMaxAge
+    ) {
+      return cachedMetadata.modified;
+    }
+
+    const commitsUrl = `https://api.github.com/repos/Eclectic-Wind/The-Megastructure-Archives/commits?path=${encodeURIComponent(path)}&per_page=1`;
+    const response = await fetch(commitsUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const commits = await response.json();
+    const modifiedDate = commits?.[0]?.commit?.committer?.date || null;
+
+    this.itemMetadataCache.set(cacheKey, {
+      modified: modifiedDate,
+      timestamp: Date.now(),
+    });
+
+    return modifiedDate;
   }
 
   addTagsToItem(element, frontmatter) {
@@ -224,6 +357,9 @@ class RepoNavigator {
   }
 
   showFileContent(file) {
+    const pathParts = file.path.split("/").filter(Boolean);
+    this.currentPath = pathParts.slice(0, -1);
+
     this.fadeOut(this.contentList)
       .then(() => this.fetchFileContent(file))
       .then((content) => {
@@ -333,7 +469,7 @@ class RepoNavigator {
     }
 
     console.log("Updating breadcrumb");
-    this.updateBreadcrumb(file.name);
+    this.updateBreadcrumb(this.currentPath.join("/"), file.name);
 
     let renderedContent;
     if (file.name.endsWith(".md") && this.markedAvailable) {
@@ -411,19 +547,19 @@ class RepoNavigator {
   }
 
   navigateToFolder(path) {
-    // Immediately update the breadcrumb
-    this.updateBreadcrumb(path);
+    const normalizedPath = (path || "").replace(/^\/+|\/+$/g, "");
+    this.currentPath = normalizedPath ? normalizedPath.split("/") : [];
+    this.updateBreadcrumb(normalizedPath);
 
     this.fadeOut(this.fileContent).then(() => {
-      this.currentPath = path.split("/").filter(Boolean);
       this.hideFileContent();
       this.hideSearchResults();
       this.showNavigator();
       this.searchBar.value = "";
-      this.updateUrl(path);
+      this.updateUrl(normalizedPath);
 
       // Now fetch the contents
-      this.fetchContents(path).then(() => {
+      this.fetchContents(normalizedPath).then(() => {
         // After fetching, fade in the content
         this.fadeIn(this.contentList);
       });
@@ -431,9 +567,14 @@ class RepoNavigator {
   }
 
   updateBreadcrumb(path = null, currentFile = null) {
+    const resolvedPath =
+      path === null
+        ? this.currentPath.join("/")
+        : path.replace(/^\/+|\/+$/g, "");
+
     this.breadcrumb.innerHTML = `<span class="breadcrumb-item" data-path=""><i class="fas fa-folder"></i> Archives</span>`;
-    if (path) {
-      const parts = path.split("/").filter(Boolean);
+    if (resolvedPath) {
+      const parts = resolvedPath.split("/").filter(Boolean);
       let currentPath = "";
       parts.forEach((folder) => {
         currentPath += `/${folder}`;
@@ -449,7 +590,7 @@ class RepoNavigator {
   addBreadcrumbListeners() {
     this.breadcrumb.querySelectorAll(".breadcrumb-item").forEach((item) => {
       item.addEventListener("click", (e) => {
-        const path = e.target.getAttribute("data-path");
+        const path = e.currentTarget.getAttribute("data-path");
         if (path !== null) {
           // Immediately update breadcrumb
           this.updateBreadcrumb(path.slice(1));
@@ -704,6 +845,7 @@ class RepoNavigator {
   clearCache() {
     this.contentCache.clear();
     this.fileCache.clear();
+    this.itemMetadataCache.clear();
     console.log("Cache cleared");
   }
 
@@ -729,3 +871,5 @@ class RepoNavigator {
     });
   }
 }
+
+window.RepoNavigator = RepoNavigator;

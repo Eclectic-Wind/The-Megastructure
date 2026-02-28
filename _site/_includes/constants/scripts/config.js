@@ -1,6 +1,7 @@
 export const config = {
     parallax: {
         multiplier: 0.6,
+        smoothingFactor: 0.14,
         rotationFactor: 20,
         backgroundMoveFactor: -100,
         contentMoveFactor: 20,
