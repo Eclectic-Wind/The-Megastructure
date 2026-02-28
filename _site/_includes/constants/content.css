@@ -86,12 +86,23 @@ p {
   flex-direction: column;
 }
 
+.bio {
+  width: fit-content;
+  margin-top: 0.5rem;
+}
+
 .bio a {
+  position: relative;
+  top: 5px;
   color: inherit;
   text-decoration-line: none;
 }
 
 /* ===== DECORATIVE ELEMENTS ===== */
+.header {
+margin-top: 3%;
+}
+
 .header:after,
 .row:after {
   content: "";
@@ -161,12 +172,27 @@ p {
   flex-direction: column;
 }
 
+#blog-navigator-container {
+  display: flex;
+  flex-direction: column;
+}
+
 .dark-mode #repo-navigator-container {
   color: var(--dark-text);
   transition: var(--transition);
 }
 
 .light-mode #repo-navigator-container {
+  color: var(--light-text);
+  transition: var(--transition);
+}
+
+.dark-mode #blog-navigator-container {
+  color: var(--dark-text);
+  transition: var(--transition);
+}
+
+.light-mode #blog-navigator-container {
   color: var(--light-text);
   transition: var(--transition);
 }
@@ -198,6 +224,20 @@ p {
   outline: none;
 }
 
+#blog-search {
+  align-self: center;
+  width: 88%;
+  height: 40px;
+  padding: 0 15px;
+  margin-top: 0.8rem;
+  margin-bottom: 1.05rem;
+  background-color: transparent;
+  border-radius: 20px;
+  font-size: 16px;
+  line-height: 40px;
+  outline: none;
+}
+
 .tag-link {
   text-decoration: none;
   color: var(--dark-accent);
@@ -210,6 +250,18 @@ p {
 }
 
 .light-mode #repo-search {
+  transition: border 0.2s ease, color 0.2 ease;
+  border: 2px solid var(--light-text);
+  color: var(--light-text);
+}
+
+.dark-mode #blog-search {
+  transition: border 0.2s ease, color 0.2 ease;
+  border: 2px solid var(--dark-text);
+  color: var(--dark-text);
+}
+
+.light-mode #blog-search {
   transition: border 0.2s ease, color 0.2 ease;
   border: 2px solid var(--light-text);
   color: var(--light-text);
@@ -266,6 +318,138 @@ p {
 
 .search-result-tree li {
   list-style-type: none;
+}
+
+.blog-post-card {
+  align-self: center;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition), transform 0.18s ease;
+}
+
+.dark-mode .blog-post-card {
+  border: 1px solid var(--light-container);
+}
+
+.light-mode .blog-post-card {
+  border: 1px solid var(--dark-container);
+}
+
+.blog-post-card:hover {
+  transform: translateY(-2px);
+}
+
+.blog-post-title {
+  margin: 0 0 0.45rem;
+}
+
+.blog-post-excerpt {
+  margin: 0 0 0.6rem;
+  width: 100%;
+}
+
+.blog-post-meta {
+  margin: 0;
+  font-size: 0.86rem;
+  opacity: 0.85;
+}
+
+.blog-post-tags {
+  margin: 0 0 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.blog-post-tag,
+.blog-tag-link {
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dark-mode .blog-post-tag,
+.dark-mode .blog-tag-link {
+  color: var(--dark-accent);
+  border: 1px solid var(--dark-accent);
+}
+
+.light-mode .blog-post-tag,
+.light-mode .blog-tag-link {
+  color: var(--light-accent-3);
+  border: 1px solid var(--light-accent-3);
+}
+
+.frontmatter-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.blog-pagination {
+  width: 88%;
+  margin: 0.3rem auto 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.blog-page-button {
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dark-mode .blog-page-button {
+  color: var(--dark-text);
+  border: 1px solid var(--dark-text);
+}
+
+.light-mode .blog-page-button {
+  color: var(--light-text);
+  border: 1px solid var(--light-text);
+}
+
+.blog-page-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.blog-page-indicator {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.blog-back-button {
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  margin: 0.75rem 0 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dark-mode .blog-back-button {
+  color: var(--dark-text);
+  border: 1px solid var(--dark-text);
+}
+
+.light-mode .blog-back-button {
+  color: var(--light-text);
+  border: 1px solid var(--light-text);
+}
+
+.blog-empty-state {
+  width: 88%;
+  margin: 0.5rem auto;
 }
 
 /* FILE RENDERING CONTENT */

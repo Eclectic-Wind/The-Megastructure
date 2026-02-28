@@ -163,8 +163,8 @@ html.dark-mode body {
 .background {
   position: absolute;
   left: -2in;
-  top: -10in;
-  width: 300%;
+  top: -15in;
+  width: 500%;
   aspect-ratio: 1 / 1;
   height: auto;
   filter: brightness(1.3);
@@ -850,4 +850,124 @@ body[data-page]:not([data-page="home"]) {
   --profile-container-right: initial;
   --profile-border-radius: 25%;
   --profile-border-width: 4px;
+}
+
+.hidden-reveal {
+  color: transparent;
+  filter: blur(8px) opacity(0.3);
+  transition: color var(--transition-duration) var(--transition-easing), filter var(--transition-duration) var(--transition-easing);
+  cursor: pointer;
+}
+
+.hidden-reveal:hover {
+  color: inherit;
+  filter: blur(0px) opacity(1);
+}
+/* Bio More Page */
+
+
+.bio-content {
+  overflow-x: auto;
+  position: absolute;
+  height: 80%;
+  padding: 2rem;
+  margin-right: 1rem;
+}
+
+.bio-content p {
+  text-indent: 2em;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin: 1.5rem 0;
+  text-align: justify;
+}
+
+.bio-content section {
+  margin: 2rem 0;
+}
+
+.bio-content h3 {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 1rem 0;
+}
+
+html.light-mode .bio-content h3 {
+  color: var(--light-accent-2);
+}
+
+html.dark-mode .bio-content h3 {
+  color: var(--dark-accent);
+}
+
+.bio-content h4 {
+  font-size: 1.2rem;
+  margin: 1rem 0 0.75rem 0;
+}
+
+.bio-content a {
+  display: inline;
+  text-decoration: none;
+  border-bottom: 2px solid;
+  transition: color var(--transition-duration) var(--transition-easing),
+    border-color var(--transition-duration) var(--transition-easing);
+  padding-bottom: 2px;
+}
+
+html.light-mode .bio-content a {
+  color: var(--light-accent-2);
+  border-color: var(--light-accent-2);
+}
+
+html.light-mode .bio-content a:hover {
+  color: var(--light-accent);
+  border-color: var(--light-accent);
+}
+
+html.dark-mode .bio-content a {
+  color: var(--dark-accent);
+  border-color: var(--dark-accent);
+}
+
+html.dark-mode .bio-content a:hover {
+  color: var(--dark-accent-2);
+  border-color: var(--dark-accent-2);
+}
+
+.bio-content ul {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.bio-content li {
+  margin: 0.7rem 0;
+  font-size: 1.05rem;
+}
+
+.tech-subsection {
+  margin: 0.75rem 0;
+}
+
+.tech-subsection h4 {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.bio-technology ul,
+.bio-gaming ul {
+  padding-left: 1.5rem;
+}
+
+.bio-technology li,
+.bio-gaming li {
+  margin: 0.4rem 0;
+}
+
+/* Data Attribute Spans - Interactive Indicator */
+span[data-attribute] {
+  cursor: help;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
 }

@@ -9,18 +9,21 @@ class SPAHandler {
       philosophy: "_includes/pages/philosophy.html",
       archives: "_includes/pages/archives.html",
       bio: "_includes/pages/bio-more.html",
+      "bio-mind": "_includes/pages/bio-mind.html",
     };
     this.defaultRoute = "home";
     this.errorPage = "_includes/pages/404.html";
     this.transitionDuration = 180;
     this.repoNavigator = null;
+    this.blogNavigator = null;
     this.currentRoute = null;
     this.lazyLoader = new LazyLoader();
     this.onRouteChange = null;
-    this.archivesDependenciesLoaded = false;
-    this.archivesScripts = {
+    this.navigatorDependenciesLoaded = false;
+    this.navigatorScripts = {
       marked: "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
       navigator: "_includes/constants/scripts/repoNavigator.js",
+      blogNavigator: "_includes/constants/scripts/blogNavigator.js",
     };
   }
 
@@ -65,27 +68,33 @@ class SPAHandler {
     });
   }
 
-  async ensureArchivesDependenciesLoaded() {
-    if (this.archivesDependenciesLoaded) {
+  async ensureNavigatorDependenciesLoaded() {
+    if (this.navigatorDependenciesLoaded) {
       return;
     }
 
     const scriptsToLoad = [];
 
     if (typeof marked === "undefined") {
-      scriptsToLoad.push(this.loadScript(this.archivesScripts.marked));
+      scriptsToLoad.push(this.loadScript(this.navigatorScripts.marked));
     }
 
     if (typeof RepoNavigator === "undefined") {
-      scriptsToLoad.push(this.loadScript(this.archivesScripts.navigator));
+      scriptsToLoad.push(this.loadScript(this.navigatorScripts.navigator));
+    }
+
+    if (typeof BlogNavigator === "undefined") {
+      scriptsToLoad.push(this.loadScript(this.navigatorScripts.blogNavigator));
     }
 
     if (scriptsToLoad.length > 0) {
       await Promise.all(scriptsToLoad);
     }
 
-    this.archivesDependenciesLoaded =
-      typeof marked !== "undefined" && typeof RepoNavigator !== "undefined";
+    this.navigatorDependenciesLoaded =
+      typeof marked !== "undefined" &&
+      typeof RepoNavigator !== "undefined" &&
+      typeof BlogNavigator !== "undefined";
   }
 
   init() {
@@ -99,15 +108,31 @@ class SPAHandler {
 
     const [route, ...rest] = hash.split("/");
     const subPath = rest.join("/");
+    const anchorId = subPath; // The part after the first slash could be an anchor
 
     if (route === "archives") {
       await this.handleArchivesRoute(subPath);
+    } else if (route === "blog") {
+      await this.handleBlogRoute(subPath);
     } else {
-      await this.loadDynamicContent(route || this.defaultRoute);
+      // Load page content if it's a different route
+      if (route !== this.currentRoute) {
+        await this.loadDynamicContent(route || this.defaultRoute);
+      } else {
+        // Same route, just scroll to anchor if provided
+        if (subPath) {
+          this.scrollToAnchor(subPath);
+        }
+      }
     }
 
     this.updateActiveMenuDot(route || this.defaultRoute);
     this.currentRoute = route || this.defaultRoute;
+
+    // Scroll to anchor after content is loaded
+    if (subPath && route !== "archives") {
+      setTimeout(() => this.scrollToAnchor(anchorId), 50);
+    }
 
     if (this.onRouteChange) this.onRouteChange();
   }
@@ -124,6 +149,21 @@ class SPAHandler {
       await this.navigateRepoContent(subPath);
     } else if (this.repoNavigator) {
       await this.repoNavigator.fetchContents();
+    }
+  }
+
+  async handleBlogRoute(subPath) {
+    console.log(`[SPA] Handling blog route with subPath: ${subPath}`);
+
+    if (!this.blogNavigator) {
+      await this.loadDynamicContent("blog");
+      await this.initBlogNavigator();
+    }
+
+    if (subPath) {
+      await this.navigateBlogContent(subPath);
+    } else if (this.blogNavigator) {
+      this.blogNavigator.showListView();
     }
   }
 
@@ -146,6 +186,10 @@ class SPAHandler {
 
       if (this.currentRoute === "archives" && route !== "archives") {
         this.cleanupRepoNavigator();
+      }
+
+      if (this.currentRoute === "blog" && route !== "blog") {
+        this.cleanupBlogNavigator();
       }
     } catch (error) {
       console.error("Error loading content:", error);
@@ -208,13 +252,26 @@ class SPAHandler {
   async initRepoNavigator() {
     console.log("[SPA] Initializing RepoNavigator");
 
-    await this.ensureArchivesDependenciesLoaded();
+    await this.ensureNavigatorDependenciesLoaded();
 
     if (typeof RepoNavigator === "function") {
       this.repoNavigator = new RepoNavigator(this.lazyLoader);
       await this.repoNavigator.init();
     } else {
       console.error("RepoNavigator class not found");
+    }
+  }
+
+  async initBlogNavigator() {
+    console.log("[SPA] Initializing BlogNavigator");
+
+    await this.ensureNavigatorDependenciesLoaded();
+
+    if (typeof BlogNavigator === "function") {
+      this.blogNavigator = new BlogNavigator();
+      await this.blogNavigator.init();
+    } else {
+      console.error("BlogNavigator class not found");
     }
   }
 
@@ -228,6 +285,16 @@ class SPAHandler {
     }
   }
 
+  cleanupBlogNavigator() {
+    console.log("[SPA] Cleaning up BlogNavigator");
+    if (this.blogNavigator) {
+      if (typeof this.blogNavigator.destroy === "function") {
+        this.blogNavigator.destroy();
+      }
+      this.blogNavigator = null;
+    }
+  }
+
   async navigateRepoContent(subPath) {
     console.log(`[SPA] Navigating RepoNavigator to: ${subPath}`);
     if (this.repoNavigator) {
@@ -238,6 +305,15 @@ class SPAHandler {
       }
     } else {
       console.error("RepoNavigator not initialized");
+    }
+  }
+
+  async navigateBlogContent(subPath) {
+    console.log(`[SPA] Navigating BlogNavigator to: ${subPath}`);
+    if (this.blogNavigator) {
+      await this.blogNavigator.openPostByPath(subPath);
+    } else {
+      console.error("BlogNavigator not initialized");
     }
   }
 
@@ -322,6 +398,16 @@ class SPAHandler {
   applyPageSpecificStyles(route) {
     document.body.setAttribute("data-page", route);
     console.log(`[SPA] Applied page-specific attribute: data-page="${route}"`);
+  }
+
+  scrollToAnchor(anchorId) {
+    const element = document.getElementById(anchorId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      console.log(`[SPA] Scrolled to anchor: ${anchorId}`);
+    } else {
+      console.warn(`[SPA] Anchor not found: ${anchorId}`);
+    }
   }
 }
 
