@@ -307,16 +307,17 @@ class RepoNavigator {
 
   createContentItem(item) {
     const itemElement = document.createElement("div");
-    itemElement.className = "repo-item";
+    const isDir = item.type === "dir";
+    itemElement.className = `repo-item repo-item--${isDir ? "dir" : "file"}`;
     itemElement.tabIndex = 0;
     itemElement.setAttribute("role", "link");
     itemElement.title = item.name;
 
-    const isDir = item.type === "dir";
     const icon = isDir ? "fa-folder" : this.getFileIcon(item.name);
-    itemElement.innerHTML = `<i class="fas ${icon}"></i> <span class="${isDir ? "dir" : "file"}">${MarkdownUtils.escapeHtml(
-      MarkdownUtils.truncateString(item.name, 30)
-    )}</span>`;
+    itemElement.innerHTML = `
+      <i class="fas ${icon} repo-item-icon" aria-hidden="true"></i>
+      <span class="repo-item-name ${isDir ? "dir" : "file"}">${MarkdownUtils.escapeHtml(item.name)}</span>
+      <span class="repo-item-meta"></span>`;
 
     const open = () => this.navigateTo(item.path);
     itemElement.addEventListener("click", open);
@@ -407,7 +408,7 @@ class RepoNavigator {
       const errorElement = document.createElement("span");
       errorElement.className = "error-indicator";
       errorElement.textContent = "⚠️";
-      itemElement.appendChild(errorElement);
+      (itemElement.querySelector(".repo-item-meta") || itemElement).appendChild(errorElement);
     }
   }
 
@@ -415,7 +416,7 @@ class RepoNavigator {
     const dateElement = document.createElement("span");
     dateElement.className = "modified-date";
     dateElement.textContent = dateText;
-    itemElement.appendChild(dateElement);
+    (itemElement.querySelector(".repo-item-meta") || itemElement).appendChild(dateElement);
   }
 
   async fetchPathLastModified(path) {
@@ -491,7 +492,7 @@ class RepoNavigator {
       if (token !== this.navigationToken) {
         return;
       }
-      html = this.renderTextFile(content, kind);
+      html = this.renderTextFile(file, content, kind);
     } else if (kind === "image" || kind === "pdf") {
       const url = await this.fetchBinaryUrl(file);
       if (token !== this.navigationToken) {
@@ -502,7 +503,9 @@ class RepoNavigator {
       this.objectUrl = url;
       html = this.renderBinaryFile(file, kind, url);
     } else {
-      html = `<p>No preview available for this file type.</p>${this.renderFileActions(file)}`;
+      html = `
+        ${this.renderFileHeader(file.name, null, this.renderFileActions(file))}
+        <p class="blog-empty-state">No preview available for this file type.</p>`;
     }
 
     this.hideNavigator();
@@ -511,10 +514,22 @@ class RepoNavigator {
     await this.fadeIn(this.fileContent);
   }
 
-  renderTextFile(rawContent, kind) {
+  renderTextFile(file, rawContent, kind) {
     const isMarkdown = kind === "markdown";
     const frontmatter = isMarkdown ? MarkdownUtils.extractFrontmatter(rawContent) : null;
-    const content = isMarkdown ? MarkdownUtils.removeFrontmatter(rawContent) : rawContent;
+    let content = isMarkdown ? MarkdownUtils.removeFrontmatter(rawContent) : rawContent;
+
+    // Title: frontmatter title, else the note's leading `# Heading` (which is
+    // then dropped from the body so it isn't shown twice), else the file name.
+    let title = file.name.replace(/\.(md|markdown)$/i, "");
+    if (isMarkdown) {
+      const heading = (content.match(/^\s*#\s+(.+?)\s*#*\s*(?:\r?\n|$)/) || [])[1];
+      const fmTitle = MarkdownUtils.normalizeText(frontmatter && frontmatter.title);
+      if (heading && (!fmTitle || MarkdownUtils.toPlainText(heading).toLowerCase() === fmTitle.toLowerCase())) {
+        content = content.replace(/^\s*#\s+.+?(?:\r?\n|$)/, "");
+      }
+      title = fmTitle || (heading ? MarkdownUtils.toPlainText(heading) : title);
+    }
 
     const body = isMarkdown
       ? MarkdownUtils.renderMarkdown(content, {
@@ -525,9 +540,18 @@ class RepoNavigator {
       : `<pre>${MarkdownUtils.escapeHtml(content)}</pre>`;
 
     return `
-      ${this.renderFrontmatter(frontmatter)}
-      <div class="file-content-body">${body}</div>
+      ${this.renderFileHeader(title, frontmatter)}
+      <article class="file-content-body">${body}</article>
     `;
+  }
+
+  renderFileHeader(title, frontmatter, extraHtml = "") {
+    return `
+      <header class="blog-post-header note-header">
+        <h2 class="blog-post-heading">${MarkdownUtils.escapeHtml(title)}</h2>
+        ${this.renderFrontmatter(frontmatter)}
+        ${extraHtml}
+      </header>`;
   }
 
   renderBinaryFile(file, kind, url) {
@@ -538,18 +562,20 @@ class RepoNavigator {
         : `<iframe class="file-embed" src="${url}" title="${name}"></iframe>`;
 
     return `
-      ${this.renderFileActions(file, url)}
+      ${this.renderFileHeader(file.name, null, this.renderFileActions(file, url))}
       <div class="file-content-body">${preview}</div>
     `;
   }
 
   renderFileActions(file, downloadUrl = null) {
     const name = MarkdownUtils.escapeHtml(file.name);
-    const download = downloadUrl ? `<a href="${downloadUrl}" download="${name}">Download</a> · ` : "";
+    const download = downloadUrl
+      ? `<a class="file-action" href="${downloadUrl}" download="${name}"><i class="fas fa-download" aria-hidden="true"></i> Download</a>`
+      : "";
 
-    return `<p class="file-actions">${download}<a href="${MarkdownUtils.escapeHtml(
+    return `<p class="file-actions">${download}<a class="file-action" href="${MarkdownUtils.escapeHtml(
       this.githubUrl(file)
-    )}" target="_blank" rel="noopener">View on GitHub</a></p>`;
+    )}" target="_blank" rel="noopener"><i class="fab fa-github" aria-hidden="true"></i> View on GitHub</a></p>`;
   }
 
   renderFrontmatter(frontmatter) {
@@ -558,36 +584,46 @@ class RepoNavigator {
     }
 
     const escape = (value) => MarkdownUtils.escapeHtml(value);
-    let html = '<div class="frontmatter-metadata">';
+    let html = "";
 
-    if (frontmatter.tags && frontmatter.tags.length > 0) {
-      const tagLinks = frontmatter.tags
-        .map((tag) => `<a href="#" class="tag-link" data-tag="${escape(tag)}">${escape(tag)}</a>`)
-        .join(", ");
-      html += `<p class="frontmatter-tags">Tags: ${tagLinks}</p>`;
+    const tags = (frontmatter.tags || []).filter(Boolean);
+    if (tags.length > 0) {
+      html += `<p class="frontmatter-tags">${tags
+        .map(
+          (tag) =>
+            `<button type="button" class="blog-tag-link tag-link" data-tag="${escape(tag)}" aria-label="Search for ${escape(tag)}">${escape(tag)}</button>`
+        )
+        .join(" ")}</p>`;
     }
 
+    const dates = [];
     const created = frontmatter.created || frontmatter.published || frontmatter.date;
-    if (created) {
-      html += `<p class="frontmatter-created">Created: ${escape(MarkdownUtils.formatDateLong(created))}</p>`;
+    if (!MarkdownUtils.isMissingDate(created)) {
+      dates.push(`Created ${MarkdownUtils.formatDateLong(created)}`);
     }
-
     const modified = frontmatter.modified || frontmatter.updated;
-    if (modified) {
-      html += `<p class="frontmatter-modified">Modified: ${escape(MarkdownUtils.formatDateLong(modified))}</p>`;
+    if (!MarkdownUtils.isMissingDate(modified)) {
+      dates.push(`Modified ${MarkdownUtils.formatDateLong(modified)}`);
+    }
+    if (dates.length > 0) {
+      html += `<p class="note-dates">${escape(dates.join(" · "))}</p>`;
     }
 
-    const shownKeys = ["tags", "aliases", "title", "created", "published", "date", "modified", "updated"];
-    for (const [key, value] of Object.entries(frontmatter)) {
-      if (!shownKeys.includes(key) && value !== "") {
-        const safeKey = key.replace(/[^a-z0-9_-]/gi, "");
-        const displayValue = Array.isArray(value) ? value.join(", ") : value;
-        html += `<p class="frontmatter-${safeKey}">${escape(key)}: ${escape(displayValue)}</p>`;
-      }
+    // Any other properties (status, author, ...) as a compact list.
+    const shownKeys = ["tags", "aliases", "title", "created", "published", "date", "modified", "updated", "cssclasses"];
+    const properties = Object.entries(frontmatter).filter(
+      ([key, value]) => !shownKeys.includes(key) && value !== "" && !(Array.isArray(value) && value.length === 0)
+    );
+    if (properties.length > 0) {
+      html += `<dl class="note-properties">${properties
+        .map(
+          ([key, value]) =>
+            `<div><dt>${escape(key)}</dt><dd>${escape(Array.isArray(value) ? value.join(", ") : value)}</dd></div>`
+        )
+        .join("")}</dl>`;
     }
 
-    html += "</div>";
-    return html;
+    return html ? `<div class="frontmatter-metadata">${html}</div>` : "";
   }
 
   bindTagLinks() {
@@ -641,24 +677,30 @@ class RepoNavigator {
   updateBreadcrumb(path = null, currentFile = null) {
     const resolvedPath = this.normalizePath(path === null ? this.currentPath.join("/") : path);
     const escape = (value) => MarkdownUtils.escapeHtml(value);
+    const separator = '<span class="breadcrumb-sep" aria-hidden="true">/</span>';
+    const parts = resolvedPath.split("/").filter(Boolean);
+    const link = (label, target, isCurrent) =>
+      isCurrent
+        ? `<span class="breadcrumb-item current" aria-current="page">${label}</span>`
+        : `<a class="breadcrumb-item" href="${target ? this.baseUrl + this.encodePath(target) : "#archives"}" data-path="${escape(target)}">${label}</a>`;
 
-    let html = `<span class="breadcrumb-item" data-path=""><i class="fas fa-folder"></i> Archives</span>`;
-    let currentPath = "";
-    resolvedPath
-      .split("/")
-      .filter(Boolean)
-      .forEach((folder) => {
-        currentPath = currentPath ? `${currentPath}/${folder}` : folder;
-        html += ` / <span class="breadcrumb-item" data-path="${escape(currentPath)}">${escape(folder)}</span>`;
-      });
-
+    const crumbs = [link('<i class="fas fa-box-archive" aria-hidden="true"></i> Archives', "", !parts.length && !currentFile)];
+    parts.forEach((folder, index) => {
+      const target = parts.slice(0, index + 1).join("/");
+      crumbs.push(link(escape(folder), target, index === parts.length - 1 && !currentFile));
+    });
     if (currentFile) {
-      html += ` / <span class="breadcrumb-item current-file">${escape(currentFile)}</span>`;
+      crumbs.push(link(escape(currentFile), null, true));
     }
 
-    this.breadcrumb.innerHTML = html;
-    this.breadcrumb.querySelectorAll(".breadcrumb-item[data-path]").forEach((item) => {
-      item.addEventListener("click", () => this.navigateTo(item.getAttribute("data-path")));
+    this.breadcrumb.setAttribute("role", "navigation");
+    this.breadcrumb.setAttribute("aria-label", "Breadcrumb");
+    this.breadcrumb.innerHTML = crumbs.join(separator);
+    this.breadcrumb.querySelectorAll("a.breadcrumb-item").forEach((item) => {
+      item.addEventListener("click", (event) => {
+        event.preventDefault();
+        this.navigateTo(item.getAttribute("data-path"));
+      });
     });
   }
 
@@ -697,7 +739,11 @@ class RepoNavigator {
   async performAutoSearch(searchTerm) {
     const controller = new AbortController();
     this.searchAbortController = controller;
-    this.searchResults.textContent = "Searching...";
+    this.searchResults.innerHTML = Array.from(
+      { length: 3 },
+      () => '<div class="repo-item repo-skeleton" aria-hidden="true"><span class="skeleton-line"></span></div>'
+    ).join("");
+    this.searchResults.setAttribute("aria-busy", "true");
     this.showSearchResults();
 
     try {
@@ -799,68 +845,62 @@ class RepoNavigator {
   }
 
   displaySearchResults(results) {
+    this.searchResults.removeAttribute("aria-busy");
     this.searchResults.innerHTML = "";
     if (results.length === 0) {
-      this.searchResults.textContent = "No results found.";
+      this.searchResults.innerHTML = `<p class="blog-empty-state">No results for “${MarkdownUtils.escapeHtml(
+        this.searchBar.value.trim()
+      )}”.</p>`;
       return;
     }
 
-    this.searchResults.appendChild(this.renderResultTree(this.buildResultTree(results)));
-  }
+    const summary = document.createElement("p");
+    summary.className = "blog-search-summary";
+    summary.textContent = `${results.length} ${results.length === 1 ? "result" : "results"}`;
+    this.searchResults.appendChild(summary);
 
-  // Matches plus the folders leading to them, keyed by path.
-  buildResultTree(results) {
-    const tree = {};
-    results.forEach((item) => {
-      const parts = item.path.split("/");
-      parts.slice(0, -1).forEach((part, index) => {
-        const folderPath = parts.slice(0, index + 1).join("/");
-        if (!tree[folderPath]) {
-          tree[folderPath] = { type: "dir", name: part, path: folderPath };
+    // Flat list: folders first, then files, each with the folder it lives in.
+    const sorted = [...results].sort((left, right) => {
+      if (left.type !== right.type) {
+        return left.type === "dir" ? -1 : 1;
+      }
+      return left.path.localeCompare(right.path, undefined, { numeric: true });
+    });
+
+    const list = document.createElement("ul");
+    list.className = "search-result-list";
+
+    sorted.forEach((item, index) => {
+      const isDir = item.type === "dir";
+      const folder = item.path.split("/").slice(0, -1).join(" / ") || "Archives";
+      const li = document.createElement("li");
+      li.className = `repo-item search-result-item repo-item--${isDir ? "dir" : "file"}`;
+      li.tabIndex = 0;
+      li.setAttribute("role", "link");
+      li.title = item.path;
+      li.style.setProperty("--enter-index", Math.min(index, 10));
+      li.innerHTML = `
+        <i class="fas ${isDir ? "fa-folder" : this.getFileIcon(item.name)} repo-item-icon" aria-hidden="true"></i>
+        <span class="repo-item-name">${MarkdownUtils.escapeHtml(item.name)}</span>
+        <span class="repo-item-meta search-result-path">${MarkdownUtils.escapeHtml(folder)}</span>`;
+
+      const open = () => {
+        if (!isDir) {
+          this.knownFiles.set(item.path, item);
+        }
+        this.navigateTo(item.path);
+      };
+      li.addEventListener("click", open);
+      li.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
         }
       });
-      tree[item.path] = item;
+      list.appendChild(li);
     });
-    return tree;
-  }
 
-  renderResultTree(tree) {
-    const rootUl = document.createElement("ul");
-    rootUl.className = "search-result-tree";
-
-    Object.keys(tree)
-      .sort()
-      .forEach((path) => {
-        const item = tree[path];
-        const level = path.split("/").length - 1;
-        const isDir = item.type === "dir";
-
-        const li = document.createElement("li");
-        li.className = "search-result-item";
-        li.style.paddingLeft = `${level * 20}px`;
-        li.tabIndex = 0;
-        li.title = item.path;
-        li.innerHTML = `<i class="fas ${isDir ? "fa-folder" : this.getFileIcon(item.name)}"></i> <span class="${
-          isDir ? "folder-name" : "file-name"
-        }">${MarkdownUtils.escapeHtml(MarkdownUtils.truncateString(item.name, isDir ? 40 : 30))}</span>`;
-
-        const open = () => {
-          if (!isDir) {
-            this.knownFiles.set(item.path, item);
-          }
-          this.navigateTo(item.path);
-        };
-        li.addEventListener("click", open);
-        li.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            open();
-          }
-        });
-
-        rootUl.appendChild(li);
-      });
-
-    return rootUl;
+    this.searchResults.appendChild(list);
   }
 
   // ------------------------------------------------------------ view state
