@@ -15,11 +15,20 @@ export const DarkMode = {
     applyDarkMode(enable) {
         document.documentElement.classList.toggle('dark-mode', enable);
         document.documentElement.classList.toggle('light-mode', !enable);
+        if (elements.darkModeToggle) {
+            elements.darkModeToggle.setAttribute('aria-pressed', String(enable));
+        }
     },
     
     init() {
         if (elements.darkModeToggle) {
             elements.darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
+            elements.darkModeToggle.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    this.toggleDarkMode();
+                }
+            });
         }
         this.applyDarkMode(this.isDarkModeEnabled());
     }

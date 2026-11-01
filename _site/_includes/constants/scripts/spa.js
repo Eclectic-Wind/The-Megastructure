@@ -12,6 +12,15 @@ class SPAHandler {
       "bio-mind": "_includes/pages/bio-mind.html",
     };
     this.defaultRoute = "home";
+    this.siteTitle = "kam's megastructure.";
+    this.routeTitles = {
+      blog: "Blog",
+      arts: "Arts",
+      philosophy: "Philosophy",
+      archives: "Archives",
+      bio: "Bio",
+      "bio-mind": "The Mind",
+    };
     this.errorPage = "_includes/pages/404.html";
     this.transitionDuration = 180;
     this.repoNavigator = null;
@@ -141,6 +150,7 @@ class SPAHandler {
     }
 
     this.updateActiveMenuDot(route || this.defaultRoute);
+    this.updateDocumentTitle(route || this.defaultRoute, subPath);
     this.currentRoute = route || this.defaultRoute;
 
     // Scroll to anchor after content is loaded (archive/blog sub-paths are
@@ -197,6 +207,7 @@ class SPAHandler {
 
       const html = await htmlPromise;
       this.contentElement.innerHTML = html;
+      this.contentElement.scrollTop = 0;
       await this.executeEmbeddedScripts(this.contentElement);
       this.initializeLazyLoading();
       await this.fadeIn();
@@ -358,16 +369,6 @@ class SPAHandler {
     return response.text();
   }
 
-  addMenuListeners() {
-    document.querySelectorAll(".menu-icon").forEach((dot) => {
-      dot.addEventListener("click", (event) => {
-        event.preventDefault();
-        const page = dot.getAttribute("data-title").toLowerCase();
-        this.navigateToPage(page);
-      });
-    });
-  }
-
   navigateToPage(page) {
     window.location.hash = page;
   }
@@ -375,8 +376,24 @@ class SPAHandler {
   updateActiveMenuDot(route) {
     document.querySelectorAll(".menu-icon").forEach((dot) => {
       const dotPage = dot.getAttribute("data-title").toLowerCase();
-      dot.classList.toggle("active", route === dotPage);
+      const isActive = route === dotPage;
+      dot.classList.toggle("active", isActive);
+      if (isActive) {
+        dot.setAttribute("aria-current", "page");
+      } else {
+        dot.removeAttribute("aria-current");
+      }
     });
+  }
+
+  updateDocumentTitle(route, subPath) {
+    // Blog posts set their own title once loaded.
+    if (route === "blog" && subPath) {
+      return;
+    }
+
+    const pageTitle = this.routeTitles[route];
+    document.title = pageTitle ? `${pageTitle} — ${this.siteTitle}` : this.siteTitle;
   }
 
   updateCardParallax(route) {
@@ -413,5 +430,4 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("[SPA] Initializing SPA Handler");
   window.spaHandler = new SPAHandler();
   window.spaHandler.init();
-  window.spaHandler.addMenuListeners();
 });

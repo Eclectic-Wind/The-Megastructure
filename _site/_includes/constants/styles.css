@@ -979,7 +979,8 @@ span[data-attribute] {
 /* ------------------------------------------------------------------ */
 @media (max-width: 760px) {
   body:not([data-page]),
-  body[data-page] {
+  body[data-page="home"],
+  body[data-page]:not([data-page="home"]) {
     --card-container-height: calc(100dvh - 96px);
     --card-container-margin-bottom: 64px;
     --content-width: calc(100% - 24px);
@@ -1160,5 +1161,87 @@ span[data-attribute] {
   .bio-content p {
     font-size: 1rem;
     text-align: left;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Accessibility & touch refinements                                   */
+/* ------------------------------------------------------------------ */
+a.menu-icon {
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--dark-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+html.light-mode :focus-visible {
+  outline-color: var(--light-accent-3);
+}
+
+/* Inputs already have a visible border; avoid a double ring. */
+#blog-search:focus-visible,
+#repo-search:focus-visible {
+  outline-offset: 0;
+}
+
+/* Keyboard users can't hover: reveal the slide-out controls on focus. */
+@media (min-width: 761px) {
+  .menu:focus-within {
+    transform: translateX(50%);
+  }
+
+  .menu:focus-within::before {
+    opacity: 0;
+  }
+
+  .menu:focus-within .menu-icon::after {
+    left: 150%;
+  }
+
+  .menu-icon:focus-visible::after {
+    opacity: 1;
+  }
+
+  .toggle-board:focus-visible {
+    transform: translate3d(-60%, 0, 0);
+    outline: none;
+  }
+
+  .toggle-board:focus-visible::after {
+    opacity: 0;
+  }
+}
+
+/* Touch screens can't hover to un-blur "Peer deeper"; show it faintly. */
+@media (hover: none) {
+  .hidden-reveal {
+    color: inherit;
+    filter: blur(0) opacity(0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Leave room above the card for the theme button. */
+  .card-container {
+    margin-top: 44px;
+  }
+
+  body:not([data-page]),
+  body[data-page="home"],
+  body[data-page]:not([data-page="home"]) {
+    --card-container-height: calc(100dvh - 128px);
   }
 }

@@ -17,6 +17,8 @@ class BlogNavigator {
     this.isInitialized = false;
     this.currentPostPath = null;
     this.loadError = false;
+    this.listScrollTop = 0;
+    this.scrollContainer = document.getElementById("dynamic-content");
     this.handleHashChangeBound = this.handleHashChange.bind(this);
   }
 
@@ -211,7 +213,7 @@ class BlogNavigator {
         <h3 class="blog-post-title">${MarkdownUtils.escapeHtml(post.title)}</h3>
         <p class="blog-post-excerpt">${MarkdownUtils.escapeHtml(post.excerpt)}</p>
         ${tagsHtml ? `<div class="blog-post-tags">${tagsHtml}</div>` : ""}
-        <p class="blog-post-meta">${this.buildMetaLine(post)}</p>
+        ${post.published || post.updated ? `<p class="blog-post-meta">${this.buildMetaLine(post)}</p>` : ""}
       `;
 
       card.tabIndex = 0;
@@ -252,6 +254,7 @@ class BlogNavigator {
       if (this.currentPage > 1) {
         this.currentPage -= 1;
         this.renderListPage();
+        this.setScrollTop(0);
       }
     });
 
@@ -267,6 +270,7 @@ class BlogNavigator {
       if (this.currentPage < totalPages) {
         this.currentPage += 1;
         this.renderListPage();
+        this.setScrollTop(0);
       }
     });
 
@@ -323,8 +327,17 @@ class BlogNavigator {
       const frontmatter = MarkdownUtils.extractFrontmatter(content);
       const body = MarkdownUtils.removeFrontmatter(content);
 
+      if (this.listContainer.style.display !== "none" && this.scrollContainer) {
+        this.listScrollTop = this.scrollContainer.scrollTop;
+      }
+
       this.listContainer.style.display = "none";
+      this.searchBar.style.display = "none";
       this.fileContent.style.display = "block";
+
+      const title =
+        MarkdownUtils.normalizeText(frontmatter && frontmatter.title) ||
+        file.name.replace(/\.md$/i, "");
 
       const renderedContent =
         file.name.endsWith(".md") && this.markedAvailable
@@ -332,10 +345,17 @@ class BlogNavigator {
           : `<pre>${MarkdownUtils.escapeHtml(body)}</pre>`;
 
       this.fileContent.innerHTML = `
-        <button class="blog-back-button" type="button">Back to Blog</button>
-        ${this.renderFrontmatter(frontmatter)}
-        <div class="file-content-body">${renderedContent}</div>
+        <header class="blog-post-header">
+          <button class="blog-back-button" type="button">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to blog
+          </button>
+          <h2 class="blog-post-heading">${MarkdownUtils.escapeHtml(title)}</h2>
+          ${this.renderFrontmatter(frontmatter)}
+        </header>
+        <article class="file-content-body">${renderedContent}</article>
       `;
+      this.setScrollTop(0);
+      document.title = `${title} — kam's megastructure.`;
 
       const backButton = this.fileContent.querySelector(".blog-back-button");
       if (backButton) {
@@ -374,10 +394,18 @@ class BlogNavigator {
   }
 
   showListView() {
+    const wasReadingPost = this.fileContent.style.display !== "none";
     this.currentPostPath = null;
+    this.searchBar.style.display = "";
     this.fileContent.style.display = "none";
     this.listContainer.style.display = "block";
     this.renderListPage();
+    document.title = "Blog — kam's megastructure.";
+
+    // Coming back from a post: return to where the reader was in the list.
+    if (wasReadingPost) {
+      this.setScrollTop(this.listScrollTop);
+    }
   }
 
   fetchFileContent(file) {
@@ -474,14 +502,21 @@ class BlogNavigator {
   }
 
   buildMetaLine(post) {
-    const publishedText = post.published
-      ? `Published: ${MarkdownUtils.formatDateShort(post.published)}`
-      : "Published: N/A";
-    const updatedText = post.updated
-      ? `Updated: ${MarkdownUtils.formatDateShort(post.updated)}`
-      : "Updated: N/A";
+    const parts = [];
+    if (!MarkdownUtils.isMissingDate(post.published)) {
+      parts.push(`Published ${MarkdownUtils.formatDateShort(post.published)}`);
+    }
+    if (!MarkdownUtils.isMissingDate(post.updated)) {
+      parts.push(`Updated ${MarkdownUtils.formatDateShort(post.updated)}`);
+    }
 
-    return `${publishedText} · ${updatedText}`;
+    return MarkdownUtils.escapeHtml(parts.join(" · "));
+  }
+
+  setScrollTop(value) {
+    if (this.scrollContainer) {
+      this.scrollContainer.scrollTop = value;
+    }
   }
 
   renderTagChips(tags, className) {
@@ -508,6 +543,7 @@ class BlogNavigator {
     }
 
     this.currentPage = 1;
+    this.listScrollTop = 0;
     this.searchBar.value = normalizedTag;
     this.applySearch(normalizedTag);
   }

@@ -487,3 +487,56 @@ td {
 tr:hover {
   background-color: #8080802d;
 }
+
+/* ===== BLOG POST VIEW ===== */
+.blog-post-header {
+  margin: 0.5rem 15px 1.25rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid currentColor;
+  border-bottom-color: color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.blog-post-header .blog-back-button {
+  margin: 0.25rem 0 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.blog-post-heading {
+  margin: 0 0 0.6rem;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.dark-mode .blog-post-heading {
+  color: var(--dark-accent);
+}
+
+.light-mode .blog-post-heading {
+  color: var(--light-accent-3);
+}
+
+.blog-post-header .frontmatter-metadata p {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin: 0.2rem 0;
+}
+
+.blog-post-header .frontmatter-tags {
+  margin-bottom: 0.4rem !important;
+}
+
+.blog-post-card:focus-visible,
+.repo-item:focus-visible,
+.search-result-item:focus-visible {
+  outline: 2px solid var(--dark-accent);
+  outline-offset: 2px;
+}
+
+.light-mode .blog-post-card:focus-visible,
+.light-mode .repo-item:focus-visible,
+.light-mode .search-result-item:focus-visible {
+  outline-color: var(--light-accent-3);
+}

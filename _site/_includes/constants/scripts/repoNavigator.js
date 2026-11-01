@@ -192,6 +192,10 @@ class RepoNavigator {
 
     this.currentViewPath = path;
     const token = ++this.navigationToken;
+    const scrollContainer = document.getElementById("dynamic-content");
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
     this.cancelSearch();
     this.searchBar.value = "";
 
