@@ -30,7 +30,9 @@ class SPAHandler {
     this.onRouteChange = null;
     this.navigatorDependenciesLoaded = false;
     this.navigatorScripts = {
-      marked: "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
+      // Pinned: unversioned URLs track the latest release, and marked.min.js
+      // no longer exists at the package root since marked v16.
+      marked: "https://cdn.jsdelivr.net/npm/marked@18.1.2/lib/marked.umd.js",
       markdownUtils: "_includes/constants/scripts/markdownUtils.js",
       navigator: "_includes/constants/scripts/repoNavigator.js",
       blogNavigator: "_includes/constants/scripts/blogNavigator.js",

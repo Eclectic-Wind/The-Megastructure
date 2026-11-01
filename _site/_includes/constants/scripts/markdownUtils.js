@@ -158,6 +158,138 @@ const MarkdownUtils = {
       .replace(/'/g, "&#039;");
   },
 
+  // ------------------------------------------------------------ rendering
+
+  // Renders Obsidian-flavoured markdown to HTML.
+  //   options.rawBaseUrl  - base URL that repo paths are appended to
+  //   options.dirPath     - repo folder of the document (for relative paths)
+  //   options.linkForPath - (repoPath) => in-site href for markdown links
+  renderMarkdown(markdown, options = {}) {
+    const source = this.preprocessObsidian(String(markdown));
+    const html =
+      typeof marked !== "undefined"
+        ? marked.parse(source)
+        : `<pre>${this.escapeHtml(markdown)}</pre>`;
+
+    return this.postprocessHtml(html, options);
+  },
+
+  // Applies Obsidian syntax outside of code spans/blocks only.
+  preprocessObsidian(text) {
+    return text
+      .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/)
+      .map((segment, index) => {
+        if (index % 2 === 1) {
+          return segment; // code: leave untouched
+        }
+
+        return segment
+          .replace(/%%[\s\S]*?%%/g, "")
+          .replace(/!\[\[([^\]|]+?)(?:\|[^\]]*)?\]\]/g, (match, target) =>
+            `![${target.split("/").pop()}](<${target.trim()}>)`
+          )
+          .replace(/\[\[([^\]|#]*)(#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (match, target, heading, alias) => {
+            const label = (alias || target || (heading || "").slice(1)).trim();
+            if (!target.trim()) {
+              return label;
+            }
+            const file = /\.[a-z0-9]+$/i.test(target.trim()) ? target.trim() : `${target.trim()}.md`;
+            return `[${label}](<${file}>)`;
+          })
+          .replace(/==([^=\n]+)==/g, "<mark>$1</mark>")
+          .replace(/^(\s*>\s*)\[!(\w+)\][+-]?\s*(.*)$/gm, (match, prefix, type, title) =>
+            `${prefix}**${title.trim() || type.charAt(0).toUpperCase() + type.slice(1)}**`
+          );
+      })
+      .join("");
+  },
+
+  postprocessHtml(html, { rawBaseUrl = "", dirPath = "", linkForPath = null } = {}) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    const isExternal = (value) => /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value);
+
+    template.content.querySelectorAll("img[src]").forEach((img) => {
+      const src = img.getAttribute("src");
+      if (rawBaseUrl && !isExternal(src) && !src.startsWith("#")) {
+        img.setAttribute("src", rawBaseUrl + this.encodeRepoPath(this.resolveRepoPath(dirPath, src)));
+      }
+      img.setAttribute("loading", "lazy");
+    });
+
+    template.content.querySelectorAll("a[href]").forEach((link) => {
+      const href = link.getAttribute("href");
+      if (href.startsWith("#")) {
+        return;
+      }
+
+      if (isExternal(href)) {
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener");
+        return;
+      }
+
+      const [pathPart] = href.split("#");
+      const repoPath = this.resolveRepoPath(dirPath, pathPart);
+      if (/\.md$/i.test(repoPath) && linkForPath) {
+        link.setAttribute("href", linkForPath(repoPath));
+      } else if (rawBaseUrl) {
+        link.setAttribute("href", rawBaseUrl + this.encodeRepoPath(repoPath));
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener");
+      }
+    });
+
+    // Wide tables scroll on their own instead of stretching the page.
+    template.content.querySelectorAll("table").forEach((table) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "table-wrapper";
+      table.replaceWith(wrapper);
+      wrapper.appendChild(table);
+    });
+
+    return template.innerHTML;
+  },
+
+  resolveRepoPath(dirPath, relativePath) {
+    const decoded = this.safeDecode(String(relativePath).trim());
+    const parts = decoded.startsWith("/") ? [] : String(dirPath).split("/").filter(Boolean);
+
+    decoded.split("/").forEach((part) => {
+      if (!part || part === ".") return;
+      if (part === "..") parts.pop();
+      else parts.push(part);
+    });
+
+    return parts.join("/");
+  },
+
+  encodeRepoPath(path) {
+    return path.split("/").map(encodeURIComponent).join("/");
+  },
+
+  // Plain-text version of a markdown snippet, for excerpts and search.
+  toPlainText(markdown) {
+    return String(markdown)
+      .replace(/%%[\s\S]*?%%/g, "")
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/!\[\[[^\]]*\]\]/g, "")
+      .replace(/\[\[([^\]|]*)(?:\|([^\]]+))?\]\]/g, (match, target, alias) =>
+        (alias || target.split("#")[0]).trim()
+      )
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/<[^>]+>/g, "")
+      .replace(/^>\s?(\[!\w+\][+-]?\s*)?/gm, "")
+      .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, "")
+      .replace(/(\*\*|__|==|~~)(.+?)\1/g, "$2")
+      .replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, "$1$2")
+      .replace(/\s+/g, " ")
+      .trim();
+  },
+
   safeDecode(value) {
     try {
       return decodeURIComponent(value);

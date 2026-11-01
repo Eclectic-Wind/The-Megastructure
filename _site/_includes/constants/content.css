@@ -540,3 +540,97 @@ tr:hover {
 .light-mode .search-result-item:focus-visible {
   outline-color: var(--light-accent-3);
 }
+
+/* ===== RENDERED MARKDOWN ===== */
+/* Long words, URLs, code and tables must not widen the card. */
+.file-content-body {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.file-content-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  overflow-wrap: normal;
+}
+
+.dark-mode .file-content-body pre,
+.dark-mode .file-content-body :not(pre) > code {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.light-mode .file-content-body pre,
+.light-mode .file-content-body :not(pre) > code {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.file-content-body :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.file-content-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.file-content-body .table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.file-content-body .table-wrapper table {
+  border-collapse: collapse;
+}
+
+.file-content-body th,
+.file-content-body td {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  overflow-wrap: normal;
+}
+
+.file-content-body blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--dark-accent);
+  opacity: 0.9;
+}
+
+.light-mode .file-content-body blockquote {
+  border-left-color: var(--light-accent-3);
+}
+
+.file-content-body mark {
+  background-color: color-mix(in srgb, var(--dark-accent) 35%, transparent);
+  color: inherit;
+  padding: 0 0.15em;
+  border-radius: 3px;
+}
+
+.blog-post-card,
+.blog-post-title,
+.blog-post-heading {
+  overflow-wrap: anywhere;
+}
+
+.blog-empty-action {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+#blog-search::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* type="search" defaults to border-box in some browsers; keep the same
+   size as the archives search box. */
+#blog-search {
+  box-sizing: content-box;
+  -webkit-appearance: none;
+  appearance: none;
+}

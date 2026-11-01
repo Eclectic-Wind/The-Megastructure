@@ -4,7 +4,6 @@ class RepoNavigator {
     this.branch = "main";
     this.baseApiUrl = `https://api.github.com/repos/${this.repo}/contents`;
     this.container = document.getElementById("repo-navigator-container");
-    this.markedAvailable = typeof marked !== "undefined";
     this.baseUrl = "#archives/";
     this.transitionDuration = 150;
     this.cacheMaxAge = 5 * 60 * 1000;
@@ -509,10 +508,13 @@ class RepoNavigator {
     const frontmatter = isMarkdown ? MarkdownUtils.extractFrontmatter(rawContent) : null;
     const content = isMarkdown ? MarkdownUtils.removeFrontmatter(rawContent) : rawContent;
 
-    const body =
-      isMarkdown && this.markedAvailable
-        ? marked.parse(content)
-        : `<pre>${MarkdownUtils.escapeHtml(content)}</pre>`;
+    const body = isMarkdown
+      ? MarkdownUtils.renderMarkdown(content, {
+          rawBaseUrl: `https://raw.githubusercontent.com/${this.repo}/${this.branch}/`,
+          dirPath: this.currentPath.join("/"),
+          linkForPath: (path) => this.baseUrl + this.encodePath(path),
+        })
+      : `<pre>${MarkdownUtils.escapeHtml(content)}</pre>`;
 
     return `
       ${this.renderFrontmatter(frontmatter)}
