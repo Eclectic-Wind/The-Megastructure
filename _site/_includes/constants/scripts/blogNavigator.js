@@ -521,10 +521,7 @@ class BlogNavigator {
     const title = this.getPostTitle(frontmatter || {}, body, file);
 
     // Don't repeat the title when the document opens with the same heading.
-    const heading = this.getLeadingHeading(body);
-    if (heading && MarkdownUtils.toPlainText(heading).toLowerCase() === title.toLowerCase()) {
-      body = body.replace(/^\s*#\s+.+?(?:\r?\n|$)/, "");
-    }
+    body = MarkdownUtils.removeDuplicateTitle(body, title);
 
     const dirPath = file.path.split("/").slice(0, -1).join("/");
     const renderedContent = body.trim()
@@ -604,13 +601,13 @@ class BlogNavigator {
 
     if (!MarkdownUtils.isMissingDate(published)) {
       html += `<p class="frontmatter-created">Published: ${MarkdownUtils.escapeHtml(
-        MarkdownUtils.formatDateLong(published)
+        MarkdownUtils.formatDate(published)
       )}</p>`;
     }
 
     if (!MarkdownUtils.isMissingDate(updated)) {
       html += `<p class="frontmatter-modified">Updated: ${MarkdownUtils.escapeHtml(
-        MarkdownUtils.formatDateLong(updated)
+        MarkdownUtils.formatDate(updated)
       )}</p>`;
     }
 

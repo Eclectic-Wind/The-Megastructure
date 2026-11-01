@@ -1078,3 +1078,106 @@ a.breadcrumb-item:hover {
     margin-right: 0.4rem;
   }
 }
+
+/* ================================================================== */
+/* Spacing pass: one left edge, readable line length, room at the end  */
+/* ================================================================== */
+
+/* The 2% margin on a 100%-tall box made it overflow the card, clipping
+   the last lines. Pad inside instead. */
+#dynamic-content {
+  margin: 0;
+  padding: 1.5% 2.5% 0;
+  box-sizing: border-box;
+}
+
+/* Everything in the blog/archives lines up with the page header. */
+#blog-search,
+#repo-search {
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#repo-breadcrumb,
+#file-content,
+#repo-content-list,
+#search-results {
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Rows keep their hover padding but their text stays on the edge. */
+#repo-content-list,
+#search-results {
+  width: calc(100% + 1.4rem);
+  margin-left: -0.7rem;
+  align-self: flex-start;
+}
+
+#repo-breadcrumb {
+  margin-left: -0.3rem;
+}
+
+.blog-post-header,
+#file-content .blog-post-header,
+#file-content .file-content-body,
+#blog-file-content .file-content-body {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.blog-pagination,
+.blog-empty-state,
+.blog-search-summary {
+  width: 100%;
+}
+
+/* ~75 characters per line, however wide the card gets. */
+.blog-post-header,
+.file-content-body {
+  max-width: 46rem;
+}
+
+.file-content-body {
+  line-height: 1.75;
+  padding-bottom: 3rem;
+}
+
+.file-content-body p {
+  margin: 0 0 1.15em;
+}
+
+.file-content-body h1,
+.file-content-body h2,
+.file-content-body h3,
+.file-content-body h4 {
+  margin: 1.8em 0 0.6em;
+}
+
+.blog-post-header {
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.6rem;
+}
+
+.blog-post-heading {
+  margin-bottom: 0.7rem;
+}
+
+#repo-content-list,
+#blog-content-list {
+  padding-bottom: 2rem;
+}
+
+@media (max-width: 760px) {
+  #dynamic-content {
+    padding: 3% 4% 0;
+  }
+
+  #repo-content-list,
+  #search-results {
+    width: calc(100% + 0.8rem);
+    margin-left: -0.4rem;
+  }
+}

@@ -140,6 +140,31 @@ const MarkdownUtils = {
     });
   },
 
+  // Long date without the time of day ("August 10, 2024").
+  formatDate(dateString) {
+    if (this.isMissingDate(dateString)) {
+      return "N/A";
+    }
+
+    const date = this.parseDate(dateString);
+    return date
+      ? date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+      : dateString;
+  },
+
+  // Drops a leading heading (any of #, ##, ###) that just repeats the title,
+  // ignoring case and punctuation ("Welcome to Babel." == "Welcome to Babel").
+  removeDuplicateTitle(body, title) {
+    const comparable = (text) =>
+      this.normalizeForSearch(this.toPlainText(text)).replace(/[^\p{L}\p{N}]+/gu, "");
+    const match = String(body).match(/^\s*#{1,3}\s+(.+?)\s*#*\s*(?:\r?\n|$)/);
+
+    if (match && title && comparable(match[1]) === comparable(title)) {
+      return String(body).slice(match[0].length);
+    }
+    return body;
+  },
+
   truncateString(str, maxLength) {
     const value = String(str);
     if (value.length <= maxLength) {

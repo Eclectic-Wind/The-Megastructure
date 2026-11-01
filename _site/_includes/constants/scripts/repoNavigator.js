@@ -525,10 +525,8 @@ class RepoNavigator {
     if (isMarkdown) {
       const heading = (content.match(/^\s*#\s+(.+?)\s*#*\s*(?:\r?\n|$)/) || [])[1];
       const fmTitle = MarkdownUtils.normalizeText(frontmatter && frontmatter.title);
-      if (heading && (!fmTitle || MarkdownUtils.toPlainText(heading).toLowerCase() === fmTitle.toLowerCase())) {
-        content = content.replace(/^\s*#\s+.+?(?:\r?\n|$)/, "");
-      }
       title = fmTitle || (heading ? MarkdownUtils.toPlainText(heading) : title);
+      content = MarkdownUtils.removeDuplicateTitle(content, title);
     }
 
     const body = isMarkdown
@@ -599,11 +597,11 @@ class RepoNavigator {
     const dates = [];
     const created = frontmatter.created || frontmatter.published || frontmatter.date;
     if (!MarkdownUtils.isMissingDate(created)) {
-      dates.push(`Created ${MarkdownUtils.formatDateLong(created)}`);
+      dates.push(`Created ${MarkdownUtils.formatDate(created)}`);
     }
     const modified = frontmatter.modified || frontmatter.updated;
     if (!MarkdownUtils.isMissingDate(modified)) {
-      dates.push(`Modified ${MarkdownUtils.formatDateLong(modified)}`);
+      dates.push(`Modified ${MarkdownUtils.formatDate(modified)}`);
     }
     if (dates.length > 0) {
       html += `<p class="note-dates">${escape(dates.join(" · "))}</p>`;
