@@ -205,6 +205,14 @@ class RepoNavigator {
         return;
       }
 
+      // First load: placeholder rows instead of an empty box.
+      if (!this.contentList.hasChildNodes() && !this.contentCache.has(path)) {
+        this.contentList.innerHTML = Array.from(
+          { length: 4 },
+          () => '<div class="repo-item repo-skeleton" aria-hidden="true"><span class="skeleton-line"></span></div>'
+        ).join("");
+      }
+
       // Folder listings and file metadata come from the same endpoint, so a
       // single request tells us which one a deep-linked path is.
       const data = await this.fetchPathData(path);
@@ -735,13 +743,12 @@ class RepoNavigator {
         try {
           const content = await this.fetchFileContent(entry);
           const frontmatter = MarkdownUtils.extractFrontmatter(content) || {};
-          const matchesNote =
-            (frontmatter.title || "").toLowerCase().includes(searchTerm) ||
-            (frontmatter.tags || []).some((tag) => tag.toLowerCase().includes(searchTerm)) ||
-            MarkdownUtils.toPlainText(MarkdownUtils.removeFrontmatter(content))
-              .toLowerCase()
-              .includes(searchTerm);
-          if (matchesNote) {
+          const fields = [
+            frontmatter.title || "",
+            (frontmatter.tags || []).join(" "),
+            MarkdownUtils.toPlainText(MarkdownUtils.removeFrontmatter(content)),
+          ].map((field) => MarkdownUtils.normalizeForSearch(field));
+          if (MarkdownUtils.matchesQuery(fields, searchTerm)) {
             matches.push(entry);
           }
         } catch (error) {

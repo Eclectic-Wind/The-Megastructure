@@ -28,6 +28,11 @@ class SPAHandler {
     this.currentRoute = null;
     this.lazyLoader = new LazyLoader();
     this.onRouteChange = null;
+    // Resolves once the first page has been rendered (used to hide the
+    // loading screen at the right moment).
+    this.firstRouteReady = new Promise((resolve) => {
+      this.resolveFirstRouteReady = resolve;
+    });
     this.navigatorDependenciesLoaded = false;
     this.navigatorScripts = {
       // Pinned: unversioned URLs track the latest release, and marked.min.js
@@ -124,7 +129,21 @@ class SPAHandler {
 
   init() {
     window.addEventListener("hashchange", () => this.handleRoute());
-    this.handleRoute();
+    this.handleRoute().finally(() => {
+      this.resolveFirstRouteReady();
+      this.prefetchNavigatorDependencies();
+    });
+  }
+
+  // Warm up the blog/archive scripts while the reader is on another page, so
+  // opening them doesn't wait on the CDN.
+  prefetchNavigatorDependencies() {
+    const run = () => this.ensureNavigatorDependenciesLoaded().catch(() => {});
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      setTimeout(run, 1500);
+    }
   }
 
   async handleRoute() {
@@ -213,6 +232,9 @@ class SPAHandler {
       await this.executeEmbeddedScripts(this.contentElement);
       this.initializeLazyLoading();
       await this.fadeIn();
+      // The page shell is on screen; blog/archive data streams in behind
+      // their own placeholders, so don't hold the loading screen for it.
+      this.resolveFirstRouteReady();
     } catch (error) {
       console.error("Error loading content:", error);
       this.contentElement.innerHTML = `

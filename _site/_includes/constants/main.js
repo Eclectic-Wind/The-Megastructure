@@ -50,32 +50,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    document.documentElement.classList.add("is-loaded");
     loadingScreen.style.opacity = "0";
     setTimeout(() => {
       loadingScreen.style.display = "none";
-    }, 500);
+    }, 400);
   }
 
-  function waitForWindowLoad() {
-    if (document.readyState === "complete") {
-      return Promise.resolve();
-    }
+  // Hide the loading screen when the page is actually ready: first page
+  // content rendered and the icon font loaded. The videos don't need to be
+  // waited on because their poster frames show until they start playing.
+  // Cap the wait so a slow CDN never holds the page hostage.
+  const ready = Promise.all([
+    window.spaHandler ? window.spaHandler.firstRouteReady : Promise.resolve(),
+    document.fonts ? document.fonts.ready : Promise.resolve(),
+  ]);
 
-    return new Promise((resolve) =>
-      window.addEventListener("load", resolve, { once: true })
-    );
-  }
-
-  function asyncOperations() {
-    return new Promise((resolve) => {
-      resolve();
-    });
-  }
-
-  Promise.race([
-    Promise.all([waitForWindowLoad(), asyncOperations()]),
-    new Promise((resolve) => setTimeout(resolve, 2000)),
-  ]).then(() => {
-    hideLoadingScreen();
-  });
+  Promise.race([ready, new Promise((resolve) => setTimeout(resolve, 3500))]).then(
+    hideLoadingScreen
+  );
 });

@@ -215,6 +215,7 @@ const MarkdownUtils = {
         img.setAttribute("src", rawBaseUrl + this.encodeRepoPath(this.resolveRepoPath(dirPath, src)));
       }
       img.setAttribute("loading", "lazy");
+      img.classList.add("md-img");
     });
 
     template.content.querySelectorAll("a[href]").forEach((link) => {
@@ -290,6 +291,34 @@ const MarkdownUtils = {
       .trim();
   },
 
+  // ---------------------------------------------------------------- search
+
+  // Lowercase and strip accents so "cafe" finds "café".
+  normalizeForSearch(text) {
+    return String(text || "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase();
+  },
+
+  // Every word of the query must start a word somewhere in the fields, so
+  // "test" matches "testing" but not "latest". Fields should already be
+  // normalised with normalizeForSearch().
+  matchesQuery(fields, query) {
+    const terms = this.normalizeForSearch(query).split(/\s+/).filter(Boolean);
+    if (terms.length === 0) {
+      return true;
+    }
+
+    return terms.every((term) => {
+      const pattern = new RegExp(
+        `(?:^|[^\\p{L}\\p{N}])${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+        "u"
+      );
+      return fields.some((field) => pattern.test(field));
+    });
+  },
+
   safeDecode(value) {
     try {
       return decodeURIComponent(value);
@@ -300,3 +329,24 @@ const MarkdownUtils = {
 };
 
 window.MarkdownUtils = MarkdownUtils;
+
+// Fade markdown images in once they've loaded (or failed) instead of letting
+// them pop in line by line.
+document.addEventListener(
+  "load",
+  (event) => {
+    if (event.target instanceof HTMLImageElement && event.target.classList.contains("md-img")) {
+      event.target.classList.add("is-loaded");
+    }
+  },
+  true
+);
+document.addEventListener(
+  "error",
+  (event) => {
+    if (event.target instanceof HTMLImageElement && event.target.classList.contains("md-img")) {
+      event.target.classList.add("is-loaded", "is-broken");
+    }
+  },
+  true
+);

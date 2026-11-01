@@ -4,10 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kam's megastructure.</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://api.github.com" crossorigin />
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
     />
+    <link rel="preload" as="image" href="_includes/assets/images/card_bg_poster.jpg" />
+    <link rel="preload" as="image" href="_includes/assets/images/anemos_pfp_glitch_poster.jpg" />
+    <link rel="modulepreload" href="_includes/constants/main.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/elements.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/cardParallax.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/darkMode.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/dataAttribute.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/config.js" />
+    <link rel="modulepreload" href="_includes/constants/scripts/utils.js" />
     <link rel="stylesheet" href="_includes/constants/styles.css" />
     <link rel="stylesheet" href="_includes/constants/content.css" />
     <script>
@@ -25,23 +38,32 @@
     </script>
   </head>
   <body>
+    <script>
+      // Size the card for the requested page before anything renders, so it
+      // doesn't jump once the page content arrives.
+      document.body.setAttribute(
+        "data-page",
+        window.location.hash.slice(1).split("/")[0] || "home"
+      );
+    </script>
+    <div id="loading-screen" aria-hidden="true">
+      <div class="loading-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
     <div class="card-container">
       <div class="main-card">
-        <div id="loading-screen">
-          <div class="loading-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
-        </div>
         <div class="background-container">
           <video
             class="background"
+            poster="_includes/assets/images/card_bg_poster.jpg"
             autoplay
             muted
             loop
             playsinline
-            preload="metadata"
+            preload="auto"
             aria-label="card background video"
           >
             <source src="_includes/assets/images/card_bg.mp4" type="video/mp4" />
@@ -72,7 +94,15 @@
         <div class="profile-container">
           <div class="profile">
             <div class="profile-img">
-              <video autoplay muted loop playsinline preload="metadata" aria-label="profile video">
+              <video
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="auto"
+                poster="_includes/assets/images/anemos_pfp_glitch_poster.jpg"
+                aria-label="profile video"
+              >
                 <source src="_includes/assets/images/anemos_pfp_glitch.mp4" type="video/mp4" />
               </video>
             </div>

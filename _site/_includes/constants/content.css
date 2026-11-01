@@ -656,3 +656,88 @@ tr:hover {
   border-color: var(--light-accent-3);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--light-accent-3) 25%, transparent);
 }
+
+/* ===== LOADING PLACEHOLDERS & ENTRANCES ===== */
+.skeleton-line {
+  display: block;
+  height: 0.8rem;
+  margin: 0.55rem 0;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, currentColor 8%, transparent) 25%,
+    color-mix(in srgb, currentColor 16%, transparent) 50%,
+    color-mix(in srgb, currentColor 8%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.3s ease-in-out infinite;
+}
+
+.skeleton-title {
+  height: 1.1rem;
+  width: 55%;
+}
+
+.skeleton-short {
+  width: 35%;
+}
+
+.blog-skeleton {
+  cursor: default;
+}
+
+.blog-skeleton:hover {
+  transform: none;
+}
+
+.repo-skeleton .skeleton-line {
+  width: 60%;
+  margin: 0.35rem 0;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Post cards fade up one after another. */
+.blog-post-card:not(.blog-skeleton) {
+  animation: card-fade-up 0.35s ease backwards;
+  animation-delay: calc(var(--enter-index, 0) * 45ms);
+}
+
+@keyframes card-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.blog-search-summary {
+  width: 88%;
+  margin: 0 auto 0.75rem;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* Images in posts fade in once loaded instead of popping in. */
+.file-content-body img.md-img {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.file-content-body img.md-img.is-loaded {
+  opacity: 1;
+}
+
+.file-content-body img.md-img.is-broken {
+  opacity: 0.6;
+}

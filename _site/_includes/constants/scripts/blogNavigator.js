@@ -44,7 +44,7 @@ class BlogNavigator {
     }
 
     this.renderBaseUi();
-    this.showStatus("Loading posts…");
+    this.showSkeleton();
 
     try {
       await this.loadPosts();
@@ -188,7 +188,11 @@ class BlogNavigator {
       file,
       title: this.getPostTitle(frontmatter, body, file),
       excerpt: this.extractFirstParagraph(body),
-      searchText: MarkdownUtils.toPlainText(body).toLowerCase(),
+      searchFields: [
+        MarkdownUtils.normalizeForSearch(this.getPostTitle(frontmatter, body, file)),
+        MarkdownUtils.normalizeForSearch(MarkdownUtils.toPlainText(body)),
+        MarkdownUtils.normalizeForSearch((Array.isArray(frontmatter.tags) ? frontmatter.tags : []).join(" ")),
+      ],
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
       published,
       updated,
@@ -251,20 +255,29 @@ class BlogNavigator {
   // ------------------------------------------------------------- list view
 
   applySearch(rawTerm) {
-    const searchTerm = (rawTerm || "").trim().toLowerCase();
+    const searchTerm = (rawTerm || "").trim();
 
-    if (!searchTerm) {
-      this.filteredPosts = [...this.posts];
-    } else {
-      this.filteredPosts = this.posts.filter(
-        (post) =>
-          post.title.toLowerCase().includes(searchTerm) ||
-          post.searchText.includes(searchTerm) ||
-          post.tags.some((tag) => String(tag).toLowerCase().includes(searchTerm))
-      );
-    }
+    this.filteredPosts = searchTerm
+      ? this.posts.filter((post) => MarkdownUtils.matchesQuery(post.searchFields, searchTerm))
+      : [...this.posts];
 
     this.renderListPage();
+  }
+
+  // Placeholder cards while posts load, so the list doesn't pop in.
+  showSkeleton(count = 3) {
+    this.fileContent.style.display = "none";
+    this.listContainer.style.display = "block";
+    this.listContainer.setAttribute("aria-busy", "true");
+    this.listContainer.innerHTML = Array.from(
+      { length: count },
+      () => `
+        <div class="blog-post-card blog-skeleton" aria-hidden="true">
+          <span class="skeleton-line skeleton-title"></span>
+          <span class="skeleton-line"></span>
+          <span class="skeleton-line skeleton-short"></span>
+        </div>`
+    ).join("");
   }
 
   showStatus(message, { action = null } = {}) {
@@ -292,6 +305,7 @@ class BlogNavigator {
   renderListPage() {
     this.fileContent.style.display = "none";
     this.listContainer.style.display = "block";
+    this.listContainer.removeAttribute("aria-busy");
 
     if (this.loadError) {
       this.showStatus(this.loadErrorMessage());
@@ -317,7 +331,21 @@ class BlogNavigator {
     const pageItems = this.filteredPosts.slice(startIndex, startIndex + this.itemsPerPage);
 
     this.listContainer.innerHTML = "";
-    pageItems.forEach((post) => this.listContainer.appendChild(this.createPostCard(post)));
+
+    const searchTerm = this.searchBar.value.trim();
+    if (searchTerm) {
+      const count = this.filteredPosts.length;
+      const summary = document.createElement("p");
+      summary.className = "blog-search-summary";
+      summary.textContent = `${count} ${count === 1 ? "post matches" : "posts match"} “${searchTerm}”`;
+      this.listContainer.appendChild(summary);
+    }
+
+    pageItems.forEach((post, index) => {
+      const card = this.createPostCard(post);
+      card.style.setProperty("--enter-index", index);
+      this.listContainer.appendChild(card);
+    });
 
     if (totalPages > 1) {
       this.listContainer.appendChild(this.createPaginationControls(totalPages));
