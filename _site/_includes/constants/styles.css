@@ -971,3 +971,194 @@ span[data-attribute] {
   text-underline-offset: 3px;
   text-decoration-thickness: 1.5px;
 }
+/* ------------------------------------------------------------------ */
+/* Small screens: the desktop layout relies on hover (slide-out menu   */
+/* and theme toggle) and a 500px minimum card width, neither of which  */
+/* works on phones. Fit the card to the screen, turn the menu into a   */
+/* bottom tab bar and the theme toggle into a tap target.              */
+/* ------------------------------------------------------------------ */
+@media (max-width: 760px) {
+  body:not([data-page]),
+  body[data-page] {
+    --card-container-height: calc(100dvh - 96px);
+    --card-container-margin-bottom: 64px;
+    --content-width: calc(100% - 24px);
+  }
+
+  body[data-page="home"],
+  body:not([data-page]) {
+    --content-height: 58%;
+    --profile-container-top: 8%;
+    --profile-container-height: 22%;
+  }
+
+  body[data-page]:not([data-page="home"]) {
+    --content-height: 78%;
+    --content-bottom: -3%;
+    --profile-container-width: 30%;
+    --profile-container-left: 70%;
+    --profile-container-height: 13%;
+  }
+
+  .card-container {
+    width: calc(100% - 24px);
+    min-width: 0;
+    min-height: 0;
+    /* Any transform turns this into the containing block for the fixed
+       controls below, so drop it (parallax is mouse-only anyway). */
+    transform: none !important;
+    will-change: auto;
+  }
+
+  /* Keep the same slice of the background video visible as on desktop:
+     the desktop offset is tuned for a ~720px-wide card. */
+  .background {
+    top: -7.6in;
+  }
+
+  .links {
+    width: auto;
+    top: 14px;
+    left: 14px;
+  }
+
+  .links i {
+    font-size: 20px;
+  }
+
+  /* Theme toggle: a single round button in the top-right corner. */
+  .toggle-board,
+  .toggle-board:hover {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    transform: none;
+    z-index: 20;
+  }
+
+  html.dark-mode .toggle-board {
+    background-color: var(--dark-container);
+    color: var(--dark-text);
+  }
+
+  html.light-mode .toggle-board {
+    background-color: var(--light-container);
+    color: var(--light-text);
+  }
+
+  .toggle-board::after,
+  .toggle-board .line,
+  .toggle-board .fa-circle {
+    display: none;
+  }
+
+  /* !important: the desktop sun/moon keyframes (fill-mode forwards) are
+     on more specific selectors and would keep the icons off-screen. */
+  .toggle-board i {
+    position: static !important;
+    font-size: 20px;
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  html.dark-mode .toggle-board .fa-sun,
+  html.light-mode .toggle-board .fa-moon {
+    display: none;
+  }
+
+  /* Menu: bottom tab bar. */
+  .right-side {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    z-index: 20;
+  }
+
+  .menu,
+  .menu:hover {
+    position: static;
+    width: 100%;
+    height: 56px;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    border-right: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    transform: none;
+  }
+
+  html.dark-mode .menu {
+    background-color: var(--dark-container);
+    border-top: 1px solid var(--dark-accent-3);
+  }
+
+  html.light-mode .menu {
+    background-color: var(--light-container);
+    border-top: 1px solid var(--light-accent-3);
+  }
+
+  .menu::before,
+  .menu-icon::after {
+    display: none;
+  }
+
+  .menu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    color: var(--dark-text);
+  }
+
+  .light-mode .menu-icon {
+    color: var(--light-text);
+  }
+
+  .menu-icon.active {
+    transform: scale(1.15);
+  }
+
+  html.dark-mode .menu-icon.active {
+    color: var(--dark-accent);
+  }
+
+  html.light-mode .menu-icon.active {
+    color: var(--light-accent-3);
+  }
+
+  /* Hover tooltips (data-attribute) appear above the tab bar. */
+  .extra-information {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: 68px;
+    width: auto;
+    opacity: 0.95;
+  }
+
+  footer {
+    display: none;
+  }
+
+  .bio-content {
+    padding: 1rem;
+    margin-right: 0;
+  }
+
+  .bio-content p {
+    font-size: 1rem;
+    text-align: left;
+  }
+}

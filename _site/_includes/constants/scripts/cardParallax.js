@@ -131,6 +131,11 @@ export const CardParallax = {
   },
 
   handleMouseMove(e) {
+    // Touch drags are scrolls, not hovers; tilting the card on them is jarring.
+    if (e.pointerType === "touch") {
+      return;
+    }
+
     if (!this.isParallaxEnabled || !this.hasRequiredElements()) {
       return;
     }
@@ -249,7 +254,11 @@ export const CardParallax = {
   },
 
   handleResize: utils.debounce(function () {
-    if (!CardParallax.hasRequiredElements()) {
+    CardParallax.measure();
+  }, 250),
+
+  measure() {
+    if (!this.hasRequiredElements()) {
       return;
     }
 
@@ -262,11 +271,18 @@ export const CardParallax = {
       height: cardRect.height,
     });
 
-    CardParallax.configureSpotlightBox();
-  }, 250),
+    this.configureSpotlightBox();
+  },
+
+  prefersReducedMotion() {
+    return Boolean(
+      window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  },
 
   enable() {
-    this.isParallaxEnabled = true;
+    this.isParallaxEnabled = !this.prefersReducedMotion();
   },
 
   disable() {
@@ -294,7 +310,7 @@ export const CardParallax = {
     );
 
     window.addEventListener("resize", this.handleResize);
-    this.handleResize();
+    this.measure();
   },
 };
 
