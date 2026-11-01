@@ -105,7 +105,7 @@ class RepoNavigator {
   createUI() {
     this.container.innerHTML = `
       <div id="repo-breadcrumb"></div>
-      <input type="text" id="repo-search" placeholder="Search through titles or tags...">
+      <input type="text" id="repo-search" placeholder="Search by name, title, text or tag..." aria-label="Search the archives">
       <div id="repo-content-list"></div>
       <div id="search-results"></div>
       <div id="file-content" class="markdown-body"></div>
@@ -733,8 +733,15 @@ class RepoNavigator {
 
         const entry = queue.shift();
         try {
-          const frontmatter = MarkdownUtils.extractFrontmatter(await this.fetchFileContent(entry));
-          if (frontmatter?.tags?.some((tag) => tag.toLowerCase().includes(searchTerm))) {
+          const content = await this.fetchFileContent(entry);
+          const frontmatter = MarkdownUtils.extractFrontmatter(content) || {};
+          const matchesNote =
+            (frontmatter.title || "").toLowerCase().includes(searchTerm) ||
+            (frontmatter.tags || []).some((tag) => tag.toLowerCase().includes(searchTerm)) ||
+            MarkdownUtils.toPlainText(MarkdownUtils.removeFrontmatter(content))
+              .toLowerCase()
+              .includes(searchTerm);
+          if (matchesNote) {
             matches.push(entry);
           }
         } catch (error) {

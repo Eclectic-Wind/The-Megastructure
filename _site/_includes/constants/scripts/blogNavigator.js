@@ -78,7 +78,7 @@ class BlogNavigator {
 
   renderBaseUi() {
     this.container.innerHTML = `
-      <input type="search" id="blog-search" placeholder="Search through titles, excerpts, or tags..." aria-label="Search blog posts">
+      <input type="search" id="blog-search" placeholder="Search posts by title, text or tag..." aria-label="Search blog posts">
       <div id="blog-content-list" aria-live="polite"></div>
       <div id="blog-file-content" class="markdown-body"></div>
     `;
@@ -188,6 +188,7 @@ class BlogNavigator {
       file,
       title: this.getPostTitle(frontmatter, body, file),
       excerpt: this.extractFirstParagraph(body),
+      searchText: MarkdownUtils.toPlainText(body).toLowerCase(),
       tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
       published,
       updated,
@@ -258,7 +259,7 @@ class BlogNavigator {
       this.filteredPosts = this.posts.filter(
         (post) =>
           post.title.toLowerCase().includes(searchTerm) ||
-          post.excerpt.toLowerCase().includes(searchTerm) ||
+          post.searchText.includes(searchTerm) ||
           post.tags.some((tag) => String(tag).toLowerCase().includes(searchTerm))
       );
     }

@@ -634,3 +634,25 @@ tr:hover {
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* ===== SEARCH INPUTS ===== */
+/* .card-container hides the text caret for its decorative elements; the
+   search boxes inherited that, so clicking them showed no cursor and they
+   looked unclickable. Restore the caret and show a clear focus state. */
+#blog-search,
+#repo-search {
+  caret-color: auto;
+  cursor: text;
+}
+
+.dark-mode #blog-search:focus,
+.dark-mode #repo-search:focus {
+  border-color: var(--dark-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dark-accent) 25%, transparent);
+}
+
+.light-mode #blog-search:focus,
+.light-mode #repo-search:focus {
+  border-color: var(--light-accent-3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--light-accent-3) 25%, transparent);
+}
