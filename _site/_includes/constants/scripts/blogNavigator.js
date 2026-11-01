@@ -125,10 +125,10 @@ class BlogNavigator {
         return null;
       }
 
-      const frontmatter = this.extractFrontmatter(content) || {};
-      const cleanContent = this.removeFrontmatter(content);
+      const frontmatter = MarkdownUtils.extractFrontmatter(content) || {};
+      const cleanContent = MarkdownUtils.removeFrontmatter(content);
       const excerpt = this.extractFirstParagraph(cleanContent);
-      const title = this.normalizeText(frontmatter.title) || file.name.replace(/\.md$/i, "");
+      const title = MarkdownUtils.normalizeText(frontmatter.title) || file.name.replace(/\.md$/i, "");
       const { published, updated } = this.getPostDates(frontmatter);
 
       return {
@@ -138,7 +138,7 @@ class BlogNavigator {
         tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
         published,
         updated,
-        sortTime: this.parseDateToMillis(updated || published),
+        sortTime: MarkdownUtils.parseDateToMillis(updated || published),
       };
     });
 
@@ -208,8 +208,8 @@ class BlogNavigator {
       card.className = "blog-post-card";
       const tagsHtml = this.renderTagChips(post.tags, "blog-post-tag");
       card.innerHTML = `
-        <h3 class="blog-post-title">${this.escapeHtml(post.title)}</h3>
-        <p class="blog-post-excerpt">${this.escapeHtml(post.excerpt)}</p>
+        <h3 class="blog-post-title">${MarkdownUtils.escapeHtml(post.title)}</h3>
+        <p class="blog-post-excerpt">${MarkdownUtils.escapeHtml(post.excerpt)}</p>
         ${tagsHtml ? `<div class="blog-post-tags">${tagsHtml}</div>` : ""}
         <p class="blog-post-meta">${this.buildMetaLine(post)}</p>
       `;
@@ -277,7 +277,7 @@ class BlogNavigator {
   }
 
   async openPostByPath(relativePath) {
-    const decodedPath = this.safeDecode(relativePath);
+    const decodedPath = MarkdownUtils.safeDecode(relativePath);
     const fullPath = decodedPath.startsWith("blog/")
       ? decodedPath
       : `blog/${decodedPath}`;
@@ -320,8 +320,8 @@ class BlogNavigator {
   async openPost(file, updateHash = true) {
     try {
       const content = await this.fetchFileContent(file);
-      const frontmatter = this.extractFrontmatter(content);
-      const body = this.removeFrontmatter(content);
+      const frontmatter = MarkdownUtils.extractFrontmatter(content);
+      const body = MarkdownUtils.removeFrontmatter(content);
 
       this.listContainer.style.display = "none";
       this.fileContent.style.display = "block";
@@ -329,7 +329,7 @@ class BlogNavigator {
       const renderedContent =
         file.name.endsWith(".md") && this.markedAvailable
           ? marked.parse(body)
-          : `<pre>${this.escapeHtml(body)}</pre>`;
+          : `<pre>${MarkdownUtils.escapeHtml(body)}</pre>`;
 
       this.fileContent.innerHTML = `
         <button class="blog-back-button" type="button">Back to Blog</button>
@@ -444,14 +444,14 @@ class BlogNavigator {
     }
 
     if (published) {
-      html += `<p class="frontmatter-created">Published: ${this.escapeHtml(
-        this.formatDateLong(published)
+      html += `<p class="frontmatter-created">Published: ${MarkdownUtils.escapeHtml(
+        MarkdownUtils.formatDateLong(published)
       )}</p>`;
     }
 
     if (updated) {
-      html += `<p class="frontmatter-modified">Updated: ${this.escapeHtml(
-        this.formatDateLong(updated)
+      html += `<p class="frontmatter-modified">Updated: ${MarkdownUtils.escapeHtml(
+        MarkdownUtils.formatDateLong(updated)
       )}</p>`;
     }
 
@@ -461,13 +461,13 @@ class BlogNavigator {
 
   getPostDates(frontmatter) {
     const published =
-      this.normalizeText(frontmatter.published) ||
-      this.normalizeText(frontmatter.created) ||
-      this.normalizeText(frontmatter.date) ||
+      MarkdownUtils.normalizeText(frontmatter.published) ||
+      MarkdownUtils.normalizeText(frontmatter.created) ||
+      MarkdownUtils.normalizeText(frontmatter.date) ||
       "";
     const updated =
-      this.normalizeText(frontmatter.updated) ||
-      this.normalizeText(frontmatter.modified) ||
+      MarkdownUtils.normalizeText(frontmatter.updated) ||
+      MarkdownUtils.normalizeText(frontmatter.modified) ||
       "";
 
     return { published, updated };
@@ -475,10 +475,10 @@ class BlogNavigator {
 
   buildMetaLine(post) {
     const publishedText = post.published
-      ? `Published: ${this.formatDateShort(post.published)}`
+      ? `Published: ${MarkdownUtils.formatDateShort(post.published)}`
       : "Published: N/A";
     const updatedText = post.updated
-      ? `Updated: ${this.formatDateShort(post.updated)}`
+      ? `Updated: ${MarkdownUtils.formatDateShort(post.updated)}`
       : "Updated: N/A";
 
     return `${publishedText} · ${updatedText}`;
@@ -494,9 +494,9 @@ class BlogNavigator {
       .filter(Boolean)
       .map(
         (tag) =>
-          `<button type="button" class="${className}" data-tag="${this.escapeHtml(
+          `<button type="button" class="${className}" data-tag="${MarkdownUtils.escapeHtml(
             tag
-          )}">${this.escapeHtml(tag)}</button>`
+          )}">${MarkdownUtils.escapeHtml(tag)}</button>`
       )
       .join(" ");
   }
@@ -510,70 +510,6 @@ class BlogNavigator {
     this.currentPage = 1;
     this.searchBar.value = normalizedTag;
     this.applySearch(normalizedTag);
-  }
-
-  extractFrontmatter(content) {
-    const match = content.match(this.frontmatterPattern());
-    if (!match) {
-      return null;
-    }
-
-    const frontmatter = {};
-    let listKey = null;
-
-    match[1].split(/\r?\n/).forEach((line) => {
-      // YAML block list item belonging to the previous key, e.g.
-      // tags:
-      //   - philosophy
-      const listItem = line.match(/^\s*-\s+(.*)$/);
-      if (listItem && listKey) {
-        const item = this.normalizeText(listItem[1]);
-        if (item) {
-          frontmatter[listKey].push(item);
-        }
-        return;
-      }
-
-      const colonIndex = line.indexOf(":");
-      if (colonIndex === -1 || /^\s/.test(line)) {
-        return;
-      }
-
-      const key = line.slice(0, colonIndex).trim().toLowerCase();
-      const value = line.slice(colonIndex + 1).trim();
-      listKey = null;
-
-      if (key === "tags" || key === "aliases") {
-        frontmatter[key] = value
-          .replace(/[\[\]]/g, "")
-          .split(",")
-          .map((tag) => this.normalizeText(tag))
-          .filter(Boolean);
-        if (!value) {
-          listKey = key;
-        }
-      } else {
-        frontmatter[key] = value.replace(/^['"]|['"]$/g, "");
-      }
-    });
-
-    return frontmatter;
-  }
-
-  removeFrontmatter(content) {
-    return content.replace(this.frontmatterPattern(), "");
-  }
-
-  frontmatterPattern() {
-    return /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-  }
-
-  safeDecode(value) {
-    try {
-      return decodeURIComponent(value);
-    } catch (error) {
-      return value;
-    }
   }
 
   extractFirstParagraph(content) {
@@ -596,7 +532,7 @@ class BlogNavigator {
 
       const cleaned = this.cleanMarkdownText(trimmedRaw).trim();
       if (cleaned) {
-        return this.truncateString(cleaned, 260);
+        return MarkdownUtils.truncateString(cleaned, 260);
       }
     }
 
@@ -613,115 +549,6 @@ class BlogNavigator {
       .replace(/^>\s?/gm, "")
       .replace(/^[-*+]\s+/gm, "")
       .replace(/\s+/g, " ");
-  }
-
-  parseDateToMillis(dateString) {
-    if (!dateString) {
-      return 0;
-    }
-
-    if (this.isMissingDate(dateString)) {
-      return 0;
-    }
-
-    const date = this.parseDate(dateString);
-    return date ? date.getTime() : 0;
-  }
-
-  // `new Date("2026-02-28")` is parsed as UTC midnight, which shows up as the
-  // previous day west of UTC, so date-only values are built in local time.
-  parseDate(dateString) {
-    const value = String(dateString).trim();
-    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    const date = dateOnly
-      ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-      : new Date(value);
-
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  hasTimeComponent(dateString) {
-    return /\d{1,2}:\d{2}/.test(String(dateString));
-  }
-
-  formatDateShort(dateString) {
-    if (this.isMissingDate(dateString)) {
-      return "N/A";
-    }
-
-    const date = this.parseDate(dateString);
-    if (!date) {
-      return dateString;
-    }
-
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-
-  formatDateLong(dateString) {
-    if (this.isMissingDate(dateString)) {
-      return "N/A";
-    }
-
-    const date = this.parseDate(dateString);
-    if (!date) {
-      return dateString;
-    }
-
-    if (!this.hasTimeComponent(dateString)) {
-      return date.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      timeZoneName: "short",
-    });
-  }
-
-  normalizeText(value) {
-    if (typeof value !== "string") {
-      return "";
-    }
-
-    return value.trim().replace(/^['"]|['"]$/g, "");
-  }
-
-  isMissingDate(value) {
-    if (typeof value !== "string") {
-      return true;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    return !normalized || normalized === "n/a" || normalized === "na";
-  }
-
-  truncateString(str, maxLength) {
-    if (str.length <= maxLength) {
-      return str;
-    }
-
-    return `${str.slice(0, maxLength).trimEnd()}...`;
-  }
-
-  escapeHtml(unsafe) {
-    return String(unsafe)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#039;");
   }
 }
 

@@ -22,6 +22,7 @@ class SPAHandler {
     this.navigatorDependenciesLoaded = false;
     this.navigatorScripts = {
       marked: "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
+      markdownUtils: "_includes/constants/scripts/markdownUtils.js",
       navigator: "_includes/constants/scripts/repoNavigator.js",
       blogNavigator: "_includes/constants/scripts/blogNavigator.js",
     };
@@ -84,6 +85,10 @@ class SPAHandler {
       scriptsToLoad.push(this.loadScript(this.navigatorScripts.marked));
     }
 
+    if (typeof MarkdownUtils === "undefined") {
+      scriptsToLoad.push(this.loadScript(this.navigatorScripts.markdownUtils));
+    }
+
     if (typeof RepoNavigator === "undefined") {
       scriptsToLoad.push(this.loadScript(this.navigatorScripts.navigator));
     }
@@ -101,6 +106,7 @@ class SPAHandler {
 
     this.navigatorDependenciesLoaded =
       typeof marked !== "undefined" &&
+      typeof MarkdownUtils !== "undefined" &&
       typeof RepoNavigator !== "undefined" &&
       typeof BlogNavigator !== "undefined";
   }
