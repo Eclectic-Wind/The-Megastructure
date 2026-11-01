@@ -15,6 +15,8 @@ class BlogNavigator {
     this.cacheMaxAge = 5 * 60 * 1000;
     this.searchDebounceTimer = null;
     this.isInitialized = false;
+    this.currentPostPath = null;
+    this.loadError = false;
     this.handleHashChangeBound = this.handleHashChange.bind(this);
   }
 
@@ -29,7 +31,14 @@ class BlogNavigator {
     }
 
     this.renderBaseUi();
-    await this.loadPosts();
+
+    try {
+      await this.loadPosts();
+    } catch (error) {
+      console.error("Error loading blog posts:", error);
+      this.loadError = true;
+    }
+
     window.addEventListener("hashchange", this.handleHashChangeBound);
     this.isInitialized = true;
     this.handleHashChange();
@@ -108,22 +117,19 @@ class BlogNavigator {
     );
 
     const postPromises = markdownFiles.map(async (file) => {
-      const content = await this.fetchFileContent(file);
+      let content;
+      try {
+        content = await this.fetchFileContent(file);
+      } catch (error) {
+        console.error(`Error loading blog post ${file.path}:`, error);
+        return null;
+      }
+
       const frontmatter = this.extractFrontmatter(content) || {};
       const cleanContent = this.removeFrontmatter(content);
       const excerpt = this.extractFirstParagraph(cleanContent);
       const title = this.normalizeText(frontmatter.title) || file.name.replace(/\.md$/i, "");
-
-      const published =
-        this.normalizeText(frontmatter.published) ||
-        this.normalizeText(frontmatter.created) ||
-        this.normalizeText(frontmatter.date) ||
-        "";
-      const updated =
-        this.normalizeText(frontmatter.updated) ||
-        this.normalizeText(frontmatter.modified) ||
-        "";
-      const sortSource = updated || published;
+      const { published, updated } = this.getPostDates(frontmatter);
 
       return {
         file,
@@ -132,11 +138,11 @@ class BlogNavigator {
         tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
         published,
         updated,
-        sortTime: this.parseDateToMillis(sortSource),
+        sortTime: this.parseDateToMillis(updated || published),
       };
     });
 
-    const loadedPosts = await Promise.all(postPromises);
+    const loadedPosts = (await Promise.all(postPromises)).filter(Boolean);
 
     this.posts = loadedPosts.sort((left, right) => {
       if (left.sortTime !== right.sortTime) {
@@ -172,6 +178,12 @@ class BlogNavigator {
     this.fileContent.style.display = "none";
     this.listContainer.style.display = "block";
 
+    if (this.loadError) {
+      this.listContainer.innerHTML =
+        '<p class="blog-empty-state">Unable to load blog posts right now. Please try again later.</p>';
+      return;
+    }
+
     if (this.filteredPosts.length === 0) {
       this.listContainer.innerHTML = '<p class="blog-empty-state">No blog posts found.</p>';
       return;
@@ -202,8 +214,16 @@ class BlogNavigator {
         <p class="blog-post-meta">${this.buildMetaLine(post)}</p>
       `;
 
+      card.tabIndex = 0;
+      card.setAttribute("role", "link");
       card.addEventListener("click", () => {
         this.openPost(post.file);
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.target === card && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          this.openPost(post.file);
+        }
       });
 
       card.querySelectorAll(".blog-post-tag").forEach((tagButton) => {
@@ -257,9 +277,24 @@ class BlogNavigator {
   }
 
   async openPostByPath(relativePath) {
-    const fullPath = relativePath.startsWith("blog/")
-      ? relativePath
-      : `blog/${relativePath}`;
+    const decodedPath = this.safeDecode(relativePath);
+    const fullPath = decodedPath.startsWith("blog/")
+      ? decodedPath
+      : `blog/${decodedPath}`;
+
+    // openPost() updates the hash, which fires hashchange and lands here
+    // again; don't re-render (or re-fetch) a post that is already open.
+    if (this.currentPostPath === fullPath && this.fileContent.style.display !== "none") {
+      return;
+    }
+
+    // Posts listed in the index already carry their file metadata, so only
+    // fall back to the (rate-limited) contents API for unlisted paths.
+    const knownPost = this.posts.find((post) => post.file.path === fullPath);
+    if (knownPost) {
+      await this.openPost(knownPost.file, false);
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -273,9 +308,12 @@ class BlogNavigator {
       await this.openPost(file, false);
     } catch (error) {
       console.error("Error opening blog post by path:", error);
+      // Show the message instead of immediately re-rendering the list over it.
+      this.currentPostPath = null;
+      this.fileContent.style.display = "none";
+      this.listContainer.style.display = "block";
       this.listContainer.innerHTML =
         '<p class="blog-empty-state">Unable to load this blog post right now.</p>';
-      this.showListView();
     }
   }
 
@@ -302,8 +340,8 @@ class BlogNavigator {
       const backButton = this.fileContent.querySelector(".blog-back-button");
       if (backButton) {
         backButton.addEventListener("click", () => {
+          // The hashchange handler renders the list view.
           window.location.hash = "#blog";
-          this.showListView();
         });
       }
 
@@ -323,8 +361,11 @@ class BlogNavigator {
           window.location.hash = targetHash;
         }
       }
+
+      this.currentPostPath = file.path;
     } catch (error) {
       console.error("Error opening blog post:", error);
+      this.currentPostPath = null;
       this.fileContent.style.display = "none";
       this.listContainer.style.display = "block";
       this.listContainer.innerHTML =
@@ -333,6 +374,7 @@ class BlogNavigator {
   }
 
   showListView() {
+    this.currentPostPath = null;
     this.fileContent.style.display = "none";
     this.listContainer.style.display = "block";
     this.renderListPage();
@@ -389,15 +431,7 @@ class BlogNavigator {
       return "";
     }
 
-    const published =
-      this.normalizeText(frontmatter.published) ||
-      this.normalizeText(frontmatter.created) ||
-      this.normalizeText(frontmatter.date) ||
-      "";
-    const updated =
-      this.normalizeText(frontmatter.updated) ||
-      this.normalizeText(frontmatter.modified) ||
-      "";
+    const { published, updated } = this.getPostDates(frontmatter);
     const tags = Array.isArray(frontmatter.tags) ? frontmatter.tags : [];
 
     let html = '<div class="frontmatter-metadata">';
@@ -423,6 +457,20 @@ class BlogNavigator {
 
     html += "</div>";
     return html;
+  }
+
+  getPostDates(frontmatter) {
+    const published =
+      this.normalizeText(frontmatter.published) ||
+      this.normalizeText(frontmatter.created) ||
+      this.normalizeText(frontmatter.date) ||
+      "";
+    const updated =
+      this.normalizeText(frontmatter.updated) ||
+      this.normalizeText(frontmatter.modified) ||
+      "";
+
+    return { published, updated };
   }
 
   buildMetaLine(post) {
@@ -465,28 +513,45 @@ class BlogNavigator {
   }
 
   extractFrontmatter(content) {
-    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
-    const match = content.match(frontmatterRegex);
+    const match = content.match(this.frontmatterPattern());
     if (!match) {
       return null;
     }
 
     const frontmatter = {};
-    match[1].split("\n").forEach((line) => {
+    let listKey = null;
+
+    match[1].split(/\r?\n/).forEach((line) => {
+      // YAML block list item belonging to the previous key, e.g.
+      // tags:
+      //   - philosophy
+      const listItem = line.match(/^\s*-\s+(.*)$/);
+      if (listItem && listKey) {
+        const item = this.normalizeText(listItem[1]);
+        if (item) {
+          frontmatter[listKey].push(item);
+        }
+        return;
+      }
+
       const colonIndex = line.indexOf(":");
-      if (colonIndex === -1) {
+      if (colonIndex === -1 || /^\s/.test(line)) {
         return;
       }
 
       const key = line.slice(0, colonIndex).trim().toLowerCase();
       const value = line.slice(colonIndex + 1).trim();
+      listKey = null;
 
-      if (key === "tags") {
+      if (key === "tags" || key === "aliases") {
         frontmatter[key] = value
           .replace(/[\[\]]/g, "")
           .split(",")
-          .map((tag) => tag.trim())
+          .map((tag) => this.normalizeText(tag))
           .filter(Boolean);
+        if (!value) {
+          listKey = key;
+        }
       } else {
         frontmatter[key] = value.replace(/^['"]|['"]$/g, "");
       }
@@ -496,7 +561,19 @@ class BlogNavigator {
   }
 
   removeFrontmatter(content) {
-    return content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
+    return content.replace(this.frontmatterPattern(), "");
+  }
+
+  frontmatterPattern() {
+    return /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+  }
+
+  safeDecode(value) {
+    try {
+      return decodeURIComponent(value);
+    } catch (error) {
+      return value;
+    }
   }
 
   extractFirstParagraph(content) {
@@ -547,12 +624,24 @@ class BlogNavigator {
       return 0;
     }
 
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
-      return 0;
-    }
+    const date = this.parseDate(dateString);
+    return date ? date.getTime() : 0;
+  }
 
-    return date.getTime();
+  // `new Date("2026-02-28")` is parsed as UTC midnight, which shows up as the
+  // previous day west of UTC, so date-only values are built in local time.
+  parseDate(dateString) {
+    const value = String(dateString).trim();
+    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = dateOnly
+      ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+      : new Date(value);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  hasTimeComponent(dateString) {
+    return /\d{1,2}:\d{2}/.test(String(dateString));
   }
 
   formatDateShort(dateString) {
@@ -560,8 +649,8 @@ class BlogNavigator {
       return "N/A";
     }
 
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
+    const date = this.parseDate(dateString);
+    if (!date) {
       return dateString;
     }
 
@@ -577,9 +666,17 @@ class BlogNavigator {
       return "N/A";
     }
 
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
+    const date = this.parseDate(dateString);
+    if (!date) {
       return dateString;
+    }
+
+    if (!this.hasTimeComponent(dateString)) {
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     }
 
     return date.toLocaleString(undefined, {

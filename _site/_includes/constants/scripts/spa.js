@@ -60,7 +60,12 @@ class SPAHandler {
       );
       script.addEventListener(
         "error",
-        () => reject(new Error(`Failed to load script: ${src}`)),
+        () => {
+          // Remove the failed tag so a later call retries instead of waiting
+          // forever on a load event that will never fire.
+          script.remove();
+          reject(new Error(`Failed to load script: ${src}`));
+        },
         { once: true }
       );
 
@@ -87,9 +92,12 @@ class SPAHandler {
       scriptsToLoad.push(this.loadScript(this.navigatorScripts.blogNavigator));
     }
 
-    if (scriptsToLoad.length > 0) {
-      await Promise.all(scriptsToLoad);
-    }
+    // A failed load (e.g. the marked CDN being unreachable) shouldn't take the
+    // whole page down: the navigators fall back to plain-text rendering.
+    const results = await Promise.allSettled(scriptsToLoad);
+    results
+      .filter((result) => result.status === "rejected")
+      .forEach((result) => console.error("[SPA]", result.reason));
 
     this.navigatorDependenciesLoaded =
       typeof marked !== "undefined" &&
@@ -129,8 +137,9 @@ class SPAHandler {
     this.updateActiveMenuDot(route || this.defaultRoute);
     this.currentRoute = route || this.defaultRoute;
 
-    // Scroll to anchor after content is loaded
-    if (subPath && route !== "archives") {
+    // Scroll to anchor after content is loaded (archive/blog sub-paths are
+    // file paths handled by their navigators, not in-page anchors)
+    if (subPath && route !== "archives" && route !== "blog") {
       setTimeout(() => this.scrollToAnchor(anchorId), 50);
     }
 
@@ -140,36 +149,38 @@ class SPAHandler {
   async handleArchivesRoute(subPath) {
     console.log(`[SPA] Handling archives route with subPath: ${subPath}`);
 
+    // Once initialized, RepoNavigator listens to hashchange itself and
+    // resolves the current hash during init, so delegating here as well
+    // would duplicate every GitHub API request.
     if (!this.repoNavigator) {
       await this.loadDynamicContent("archives");
       await this.initRepoNavigator();
-    }
-
-    if (subPath) {
-      await this.navigateRepoContent(subPath);
-    } else if (this.repoNavigator) {
-      await this.repoNavigator.fetchContents();
     }
   }
 
   async handleBlogRoute(subPath) {
     console.log(`[SPA] Handling blog route with subPath: ${subPath}`);
 
+    // Same as archives: BlogNavigator owns sub-path routing after init.
     if (!this.blogNavigator) {
       await this.loadDynamicContent("blog");
       await this.initBlogNavigator();
-    }
-
-    if (subPath) {
-      await this.navigateBlogContent(subPath);
-    } else if (this.blogNavigator) {
-      this.blogNavigator.showListView();
     }
   }
 
   async loadDynamicContent(route) {
     console.log(`[SPA] Loading content for route: ${route}`);
     const contentUrl = this.routes[route] || this.errorPage;
+
+    // Tear down navigators before swapping content so a failed load can't
+    // leave a stale navigator (and its hashchange listener) behind.
+    if (route !== "archives") {
+      this.cleanupRepoNavigator();
+    }
+
+    if (route !== "blog") {
+      this.cleanupBlogNavigator();
+    }
 
     try {
       this.updateCardParallax(route);
@@ -183,14 +194,6 @@ class SPAHandler {
       await this.executeEmbeddedScripts(this.contentElement);
       this.initializeLazyLoading();
       await this.fadeIn();
-
-      if (this.currentRoute === "archives" && route !== "archives") {
-        this.cleanupRepoNavigator();
-      }
-
-      if (this.currentRoute === "blog" && route !== "blog") {
-        this.cleanupBlogNavigator();
-      }
     } catch (error) {
       console.error("Error loading content:", error);
       this.contentElement.innerHTML = `
@@ -256,7 +259,12 @@ class SPAHandler {
 
     if (typeof RepoNavigator === "function") {
       this.repoNavigator = new RepoNavigator(this.lazyLoader);
-      await this.repoNavigator.init();
+      try {
+        await this.repoNavigator.init();
+      } catch (error) {
+        console.error("[SPA] RepoNavigator init failed:", error);
+        this.repoNavigator = null;
+      }
     } else {
       console.error("RepoNavigator class not found");
     }
@@ -269,7 +277,12 @@ class SPAHandler {
 
     if (typeof BlogNavigator === "function") {
       this.blogNavigator = new BlogNavigator();
-      await this.blogNavigator.init();
+      try {
+        await this.blogNavigator.init();
+      } catch (error) {
+        console.error("[SPA] BlogNavigator init failed:", error);
+        this.blogNavigator = null;
+      }
     } else {
       console.error("BlogNavigator class not found");
     }
@@ -292,28 +305,6 @@ class SPAHandler {
         this.blogNavigator.destroy();
       }
       this.blogNavigator = null;
-    }
-  }
-
-  async navigateRepoContent(subPath) {
-    console.log(`[SPA] Navigating RepoNavigator to: ${subPath}`);
-    if (this.repoNavigator) {
-      if (subPath.endsWith(".md")) {
-        await this.repoNavigator.handleNavigation();
-      } else {
-        await this.repoNavigator.navigateToFolder(subPath);
-      }
-    } else {
-      console.error("RepoNavigator not initialized");
-    }
-  }
-
-  async navigateBlogContent(subPath) {
-    console.log(`[SPA] Navigating BlogNavigator to: ${subPath}`);
-    if (this.blogNavigator) {
-      await this.blogNavigator.openPostByPath(subPath);
-    } else {
-      console.error("BlogNavigator not initialized");
     }
   }
 

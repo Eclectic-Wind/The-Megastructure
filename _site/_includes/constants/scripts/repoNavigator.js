@@ -42,7 +42,6 @@ class RepoNavigator {
     }
 
     this.createUI();
-    window.addEventListener("popstate", this.handleNavigationBound);
     window.addEventListener("hashchange", this.handleNavigationBound);
     this.isInitialized = true;
     this.handleNavigation();
@@ -50,18 +49,18 @@ class RepoNavigator {
 
   handleNavigation() {
     const hash = window.location.hash;
-    if (!hash || hash === "#") {
-      this.fetchContents();
-    } else if (hash.startsWith(this.baseUrl)) {
+    if (hash.startsWith(this.baseUrl)) {
       const path = hash.slice(this.baseUrl.length);
       if (path.endsWith(".md")) {
         this.loadFileFromUrl(path);
       } else {
         this.navigateToFolder(path);
       }
-    } else {
+    } else if (hash === "#archives") {
       this.fetchContents();
     }
+    // Any other hash belongs to a different route; the SPA will tear this
+    // navigator down, so don't fire an API request for it.
   }
 
   createUI() {
@@ -112,7 +111,6 @@ class RepoNavigator {
       return;
     }
 
-    window.removeEventListener("popstate", this.handleNavigationBound);
     window.removeEventListener("hashchange", this.handleNavigationBound);
 
     if (this.searchBar) {
