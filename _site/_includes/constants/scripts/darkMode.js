@@ -24,7 +24,7 @@ export const DarkMode = {
             return;
         }
 
-        const origin = this.getKnobCentre();
+        const origin = this.getIconCentre();
         const radius = Math.hypot(
             Math.max(origin.x, window.innerWidth - origin.x),
             Math.max(origin.y, window.innerHeight - origin.y)
@@ -56,9 +56,10 @@ export const DarkMode = {
         });
     },
 
-    getKnobCentre() {
-        const knob = elements.darkModeToggle && elements.darkModeToggle.querySelector('.toggle-knob');
-        if (!knob) {
+    // The reveal starts from the toggle's circle (the sun/moon backdrop).
+    getIconCentre() {
+        const knob = elements.darkModeToggle && elements.darkModeToggle.querySelector('.fa-circle');
+        if (!knob || !knob.getClientRects().length) {
             return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
         }
 
@@ -74,10 +75,6 @@ export const DarkMode = {
             const label = enable ? 'Switch to light mode' : 'Switch to dark mode';
             elements.darkModeToggle.removeAttribute('aria-pressed');
             elements.darkModeToggle.setAttribute('aria-label', label);
-            const knob = elements.darkModeToggle.querySelector('.toggle-knob');
-            if (knob) {
-                knob.setAttribute('data-label', label);
-            }
         }
     },
 

@@ -20,6 +20,10 @@
     filter var(--transition-duration) var(--transition-easing);
   --returnEasing: cubic-bezier(0.445, 0.05, 0.55, 0.95);
   --hoverEasing: cubic-bezier(0.23, 1, 0.32, 1);
+  --stage1-0: translateY(30vh) rotate(720deg);
+  --stage1-1: translateY(-39vh) rotate(1deg);
+  --stage1-2: translateY(-37vh) rotate(0deg);
+  --stage1-3: translateY(32vh) rotate(719deg);
   --border-radius: 10px;
   --page-home-transition: 0.42s cubic-bezier(0.23, 1, 0.32, 1);
   --control-slide-duration: 0.14s;
@@ -363,6 +367,224 @@ html.dark-mode .content-spotlight {
   object-fit: contain;
   object-position: center;
   transform: translate(-1%, -5%);
+}
+
+/* Toggle Board */
+.toggle-board {
+  width: 10%;
+  height: 100%;
+  position: absolute;
+  border-left: 3vw solid rgba(255, 0, 0, 0);
+  background-color: transparent;
+  left: -5%;
+  transform: translateX(0);
+  z-index: 1;
+  transition: transform var(--control-slide-duration) var(--hoverEasing),
+    background-color var(--transition-duration) var(--transition-easing),
+    border-color var(--transition-duration) var(--transition-easing);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  will-change: transform;
+}
+
+.toggle-board:hover {
+  transform: translate3d(-60%, 0, 0);
+  border-left: 3vw solid rgba(255, 2, 2, 0);
+}
+
+.toggle-board::after {
+  content: "TAB";
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  padding: 4px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--dark-text);
+  background-color: var(--dark-container);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--menu-label-transition-duration) var(--transition-easing);
+}
+
+html.light-mode .toggle-board::after {
+  color: var(--light-text);
+  background-color: var(--light-container);
+}
+
+.toggle-board:hover::after {
+  opacity: 0;
+}
+
+.toggle-board i {
+  transition: var(--transition);
+  color: inherit;
+}
+
+.toggle-board .line {
+  content: "";
+  position: absolute;
+  right: 50%;
+  top: 5vh;
+  width: 1px;
+  height: 65vh;
+  background-color: var(--dark-text);
+  z-index: 1;
+  transition: var(--transition);
+}
+
+.light-mode .toggle-board .line {
+  background-color: var(--light-text);
+}
+
+.toggle-board i {
+  font-size: 28px;
+  position: absolute;
+  caret-color: transparent;
+  z-index: 3;
+  transform: bottom 5s ease;
+  transition: color 0.2s ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.toggle-board .fa-circle {
+  color: var(--dark-bg);
+  font-size: 40px;
+  opacity: 1;
+  z-index: 2;
+  transition: color 0.15s ease;
+}
+
+.light-mode .toggle-board .fa-circle {
+  color: var(--light-bg);
+  transition: color 0.19s ease;
+}
+
+/* Animations */
+html.light-mode .toggle-board .fa-moon {
+  animation: hideMoon var(--mode-icon-animation-duration) forwards;
+}
+
+html.light-mode .toggle-board .fa-sun {
+  animation: showSun var(--mode-icon-animation-duration) forwards;
+}
+
+html.light-mode .toggle-board .fa-circle {
+  animation: moveCircleUp var(--mode-icon-animation-duration) forwards;
+}
+
+html.dark-mode .toggle-board .fa-moon {
+  animation: showMoon var(--mode-icon-animation-duration) forwards;
+}
+
+html.dark-mode .toggle-board .fa-sun {
+  animation: hideSun var(--mode-icon-animation-duration) forwards;
+}
+
+html.dark-mode .toggle-board .fa-circle {
+  animation: moveCircleDown var(--mode-icon-animation-duration) forwards;
+}
+
+@keyframes hideMoon {
+  0% {
+    transform: var(--stage1-0);
+    opacity: 1;
+  }
+
+  80% {
+    transform: var(--stage1-1);
+    opacity: 0;
+  }
+
+  100% {
+    transform: var(--stage1-2);
+    opacity: 0;
+  }
+}
+
+@keyframes showSun {
+  0% {
+    transform: var(--stage1-0);
+    opacity: 0;
+  }
+
+  80% {
+    transform: var(--stage1-1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: var(--stage1-2);
+    opacity: 1;
+  }
+}
+
+@keyframes showMoon {
+  0% {
+    transform: var(--stage1-2);
+    opacity: 0;
+  }
+
+  80% {
+    transform: var(--stage1-3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: var(--stage1-0);
+    opacity: 1;
+  }
+}
+
+@keyframes hideSun {
+  0% {
+    transform: var(--stage1-2);
+    opacity: 1;
+  }
+
+  80% {
+    transform: var(--stage1-3);
+    opacity: 0;
+  }
+
+  100% {
+    transform: var(--stage1-0);
+    opacity: 0;
+  }
+}
+
+@keyframes moveCircleUp {
+  0% {
+    transform: var(--stage1-0);
+  }
+
+  80% {
+    transform: var(--stage1-1);
+  }
+
+  100% {
+    transform: var(--stage1-2);
+  }
+}
+
+@keyframes moveCircleDown {
+  0% {
+    transform: var(--stage1-2);
+  }
+
+  80% {
+    transform: var(--stage1-3);
+  }
+
+  100% {
+    transform: var(--stage1-0);
+  }
 }
 
 /* Right Side */
@@ -805,6 +1027,52 @@ span[data-attribute] {
     font-size: 20px;
   }
 
+  /* Theme toggle: a single round button in the top-right corner. */
+  .toggle-board,
+  .toggle-board:hover {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    transform: none;
+    z-index: 20;
+  }
+
+  html.dark-mode .toggle-board {
+    background-color: var(--dark-container);
+    color: var(--dark-text);
+  }
+
+  html.light-mode .toggle-board {
+    background-color: var(--light-container);
+    color: var(--light-text);
+  }
+
+  .toggle-board::after,
+  .toggle-board .line,
+  .toggle-board .fa-circle {
+    display: none;
+  }
+
+  /* !important: the desktop sun/moon keyframes (fill-mode forwards) are
+     on more specific selectors and would keep the icons off-screen. */
+  .toggle-board i {
+    position: static !important;
+    font-size: 20px;
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  html.dark-mode .toggle-board .fa-sun,
+  html.light-mode .toggle-board .fa-moon {
+    display: none;
+  }
+
   /* Menu: bottom tab bar. */
   .right-side {
     position: fixed;
@@ -936,6 +1204,15 @@ html.light-mode :focus-visible {
   .menu-icon:focus-visible::after {
     opacity: 1;
   }
+
+  .toggle-board:focus-visible {
+    transform: translate3d(-60%, 0, 0);
+    outline: none;
+  }
+
+  .toggle-board:focus-visible::after {
+    opacity: 0;
+  }
 }
 
 /* Touch screens can't hover to un-blur "Peer deeper"; show it faintly. */
@@ -1018,188 +1295,52 @@ html.light-mode .profile-img {
   background-color: var(--light-container);
 }
 
-/* ------------------------------------------------------------------ */
-/* Day / night toggle                                                  */
-/* A slim "sky" rail beside the card: the knob rises to the top as the */
-/* sun in light mode and sets to the bottom as the moon in dark mode.  */
-/* ------------------------------------------------------------------ */
-.toggle-board {
-  --knob-size: 40px;
-  --knob-inset: 6px;
-  --sun: #f2b44b;
-  --moon: var(--dark-accent);
-  position: absolute;
-  top: 0;
-  left: -64px;
-  width: 44px;
-  height: 100%;
-  z-index: 3;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+/* Day/night toggle hint: a faint grip just left of the card edge where
+   the toggle hides, so there's something to find. It fades as the
+   toggle slides out. (Replaces the "TAB" pill, which sat behind the
+   card and never showed.) */
+@media (min-width: 761px) {
+  .toggle-board::after,
+  html.light-mode .toggle-board::after {
+    content: "";
+    /* The board's 3vw transparent border is the only part not under the
+       card (content box starts ~0.5vw inside the card edge), so sit the
+       grip ~10px left of the card edge. */
+    left: calc(-0.5vw - 12px);
+    width: 3px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background-color: currentColor;
+    opacity: 0.2;
+  }
+
+  .toggle-board::after {
+    color: var(--dark-text);
+  }
+
+  html.light-mode .toggle-board::after {
+    color: var(--light-text);
+  }
+
+  .toggle-board:hover::after,
+  .toggle-board:focus-visible::after {
+    opacity: 0;
+  }
 }
 
-.toggle-track {
-  position: absolute;
-  left: 50%;
-  top: calc(var(--knob-inset) + var(--knob-size) / 2);
-  bottom: calc(var(--knob-inset) + var(--knob-size) / 2);
-  width: 2px;
-  transform: translateX(-50%);
-  border-radius: 2px;
-  background: linear-gradient(to bottom, var(--sun), var(--moon));
-  opacity: 0.3;
-  transition: opacity 0.25s ease;
-}
-
-.toggle-board:hover .toggle-track,
-.toggle-board:focus-visible .toggle-track {
-  opacity: 0.65;
-}
-
-.toggle-knob {
-  position: absolute;
-  left: 50%;
-  top: var(--knob-inset);
-  width: var(--knob-size);
-  height: var(--knob-size);
-  transform: translateX(-50%);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  transition: top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.25s ease,
-    scale 0.2s ease;
-}
-
-html.dark-mode .toggle-knob {
-  top: calc(100% - var(--knob-size) - var(--knob-inset));
-  background-color: var(--dark-container);
-  border: 1px solid color-mix(in srgb, var(--moon) 45%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--moon) 22%, transparent);
-}
-
-html.light-mode .toggle-knob {
-  background-color: #f4f5f7;
-  border: 1px solid color-mix(in srgb, var(--sun) 70%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--sun) 40%, transparent);
-}
-
-.toggle-board:hover .toggle-knob,
-.toggle-board:focus-visible .toggle-knob {
-  scale: 1.08;
-}
-
-.toggle-board:focus-visible {
-  outline: none;
-}
-
-.toggle-board:focus-visible .toggle-knob {
-  outline: 2px solid var(--dark-accent);
-  outline-offset: 3px;
-}
-
-html.light-mode .toggle-board:focus-visible .toggle-knob {
-  outline-color: var(--light-accent-3);
-}
-
-/* Sun and moon cross-fade with a quarter turn. */
-.toggle-knob i {
-  grid-area: 1 / 1;
-  font-size: 18px;
-  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-.toggle-knob .fa-sun {
-  color: #e39b1e;
-}
-
-.toggle-knob .fa-moon {
-  color: var(--moon);
-}
-
-html.dark-mode .toggle-knob .fa-sun,
-html.light-mode .toggle-knob .fa-moon {
-  opacity: 0;
-  transform: rotate(-90deg) scale(0.4);
-}
-
-html.dark-mode .toggle-knob .fa-moon,
-html.light-mode .toggle-knob .fa-sun {
-  opacity: 1;
-  transform: none;
-}
-
-/* "Switch to light/dark mode" next to the knob on hover/focus. */
-.toggle-knob::after {
-  content: attr(data-label);
-  position: absolute;
-  right: calc(100% + 10px);
-  top: 50%;
-  transform: translate(4px, -50%);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-
-html.dark-mode .toggle-knob::after {
-  color: var(--dark-text);
-  background-color: var(--dark-container);
-}
-
-html.light-mode .toggle-knob::after {
-  color: var(--light-text);
-  background-color: var(--light-container);
-}
-
-.toggle-board:hover .toggle-knob::after,
-.toggle-board:focus-visible .toggle-knob::after {
-  opacity: 1;
-  transform: translate(0, -50%);
-}
-
-/* Circular theme reveal (View Transitions): keep the default cross-fade
-   off and freeze ordinary colour transitions so the new theme is crisp.
-   The knob still glides inside the reveal. */
+/* Circular theme reveal (View Transitions, see darkMode.js): no default
+   cross-fade, and ordinary colour transitions are frozen so the new theme
+   is crisp. The toggle's spin is a keyframe animation, so it still plays. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-html.theme-switching *:not(.toggle-knob):not(.toggle-knob i),
+html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
   transition: none !important;
-}
-
-/* Phones: a round button in the top-right corner. */
-@media (max-width: 760px) {
-  .toggle-board {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    left: auto;
-    width: 44px;
-    height: 44px;
-    z-index: 20;
-  }
-
-  .toggle-track,
-  .toggle-knob::after {
-    display: none;
-  }
-
-  .toggle-knob,
-  html.dark-mode .toggle-knob,
-  html.light-mode .toggle-knob {
-    top: 0;
-    left: 0;
-    width: 44px;
-    height: 44px;
-    transform: none;
-  }
 }
