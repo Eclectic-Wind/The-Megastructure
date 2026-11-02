@@ -1319,17 +1319,35 @@ html.light-mode .profile-img {
   }
 }
 
-/* Circular theme reveal (View Transitions, see darkMode.js): no default
-   cross-fade, and ordinary colour transitions are frozen so the new theme
-   is crisp. The toggle's spin is a keyframe animation, so it still plays. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
 
-html.theme-switching *,
-html.theme-switching *::before,
-html.theme-switching *::after {
-  transition: none !important;
+/* Page menu hint: the same faint grip as the day/night toggle, just right
+   of the card edge where the menu hides. It fades as the menu slides out.
+   (Replaces the "TAB" pill, which sat behind the card and never showed.)
+   The menu's padding box ends exactly at the card edge; only its
+   transparent right border sticks out, so 100% + 9px is just outside. */
+@media (min-width: 761px) {
+  .menu::before,
+  html.light-mode .menu::before {
+    content: "";
+    left: calc(100% + 9px);
+    right: auto;
+    width: 3px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    letter-spacing: 0;
+    background-color: currentColor;
+  }
+
+  /* Opacity on its own low-specificity rule so :hover / :focus-within can
+     always hide it, in either theme. */
+  .menu::before {
+    color: var(--dark-text);
+    opacity: 0.2;
+  }
+
+  html.light-mode .menu::before {
+    color: var(--light-text);
+  }
 }

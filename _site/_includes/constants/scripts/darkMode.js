@@ -6,13 +6,6 @@ export const DarkMode = {
         return localStorage.getItem(config.darkMode.storageKey) !== 'false';
     },
 
-    prefersReducedMotion() {
-        return Boolean(
-            window.matchMedia &&
-                window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        );
-    },
-
     toggleDarkMode() {
         const isDarkMode = !this.isDarkModeEnabled();
         localStorage.setItem(config.darkMode.storageKey, isDarkMode);
@@ -20,49 +13,11 @@ export const DarkMode = {
         // not when the page first loads.
         document.documentElement.classList.add('toggle-animated');
         this.keepToggleOpen();
-
-        // Where supported, reveal the new theme as a circle spreading out
-        // from the toggle's knob; otherwise just switch (colours still ease).
-        if (!document.startViewTransition || this.prefersReducedMotion()) {
-            this.applyDarkMode(isDarkMode);
-            return;
-        }
-
-        const origin = this.getIconCentre();
-        const radius = Math.hypot(
-            Math.max(origin.x, window.innerWidth - origin.x),
-            Math.max(origin.y, window.innerHeight - origin.y)
-        );
-
-        document.documentElement.classList.add('theme-switching');
-        const transition = document.startViewTransition(() => this.applyDarkMode(isDarkMode));
-
-        transition.ready
-            .then(() => {
-                document.documentElement.animate(
-                    {
-                        clipPath: [
-                            `circle(0px at ${origin.x}px ${origin.y}px)`,
-                            `circle(${radius}px at ${origin.x}px ${origin.y}px)`,
-                        ],
-                    },
-                    {
-                        duration: 550,
-                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-                        pseudoElement: '::view-transition-new(root)',
-                    }
-                );
-            })
-            .catch(() => {});
-
-        transition.finished.finally(() => {
-            document.documentElement.classList.remove('theme-switching');
-        });
+        this.applyDarkMode(isDarkMode);
     },
 
-    // Keep the toggle slid out while the sun/moon travels. Hover is lost
-    // during the theme reveal (the browser overlays the page), and keyboard
-    // or touch users never hover, so otherwise the animation is hidden.
+    // Keep the toggle slid out while the sun/moon travels, so the animation
+    // is seen even if the pointer moves away, and by keyboard/touch users.
     keepToggleOpen() {
         const toggle = elements.darkModeToggle;
         if (!toggle) {
@@ -74,17 +29,6 @@ export const DarkMode = {
         toggle.classList.add('is-switching');
         clearTimeout(this.switchingTimer);
         this.switchingTimer = setTimeout(() => toggle.classList.remove('is-switching'), duration * 1000 + 250);
-    },
-
-    // The reveal starts from the toggle's circle (the sun/moon backdrop).
-    getIconCentre() {
-        const knob = elements.darkModeToggle && elements.darkModeToggle.querySelector('.fa-circle');
-        if (!knob || !knob.getClientRects().length) {
-            return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-        }
-
-        const rect = knob.getBoundingClientRect();
-        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
     },
 
     applyDarkMode(enable) {
