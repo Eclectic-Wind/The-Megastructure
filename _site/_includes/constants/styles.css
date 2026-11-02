@@ -159,7 +159,11 @@ html.dark-mode body {
 .background {
   position: absolute;
   left: -2in;
-  top: -15in;
+  /* Percentage margins are measured from the container's width, so the
+     same slice of the video shows at any card width (-200% == the old
+     -15in at the 720px desktop card and -7.6in at a 366px phone card). */
+  top: 0;
+  margin-top: -200%;
   width: 500%;
   aspect-ratio: 1 / 1;
   height: auto;
@@ -958,7 +962,7 @@ span[data-attribute] {
 /* works on phones. Fit the card to the screen, turn the menu into a   */
 /* bottom tab bar and the theme toggle into a tap target.              */
 /* ------------------------------------------------------------------ */
-@media (max-width: 760px) {
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
   body:not([data-page]),
   body[data-page="home"],
   body[data-page]:not([data-page="home"]) {
@@ -990,12 +994,6 @@ span[data-attribute] {
        controls below, so drop it (parallax is mouse-only anyway). */
     transform: none !important;
     will-change: auto;
-  }
-
-  /* Keep the same slice of the background video visible as on desktop:
-     the desktop offset is tuned for a ~720px-wide card. */
-  .background {
-    top: -7.6in;
   }
 
   .links {
@@ -1169,7 +1167,7 @@ html.light-mode :focus-visible {
 }
 
 /* Keyboard users can't hover: reveal the slide-out controls on focus. */
-@media (min-width: 761px) {
+@media (min-width: 761px) and (hover: hover), (min-width: 761px) and (pointer: fine) {
   .menu:focus-within {
     transform: translateX(50%);
   }
@@ -1214,16 +1212,34 @@ html.light-mode :focus-visible {
   }
 }
 
-@media (max-width: 760px) {
-  /* Leave room above the card for the theme button. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  /* Leave room above the card for the theme button (12px top + 44px). */
   .card-container {
-    margin-top: 44px;
+    margin-top: 60px;
   }
 
   body:not([data-page]),
   body[data-page="home"],
   body[data-page]:not([data-page="home"]) {
-    --card-container-height: calc(100dvh - 128px);
+    --card-container-height: calc(100dvh - 140px);
+  }
+
+  /* Comfortable touch targets (the icons themselves stay the same size). */
+  .links {
+    gap: 2px;
+    top: 6px;
+    left: 6px;
+  }
+
+  .links a {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+  }
+
+  .links i {
+    margin: 0;
   }
 }
 
@@ -1280,7 +1296,7 @@ html.light-mode .profile-img {
    the toggle hides, so there's something to find. It fades as the
    toggle slides out. (Replaces the "TAB" pill, which sat behind the
    card and never showed.) */
-@media (min-width: 761px) {
+@media (min-width: 761px) and (hover: hover), (min-width: 761px) and (pointer: fine) {
   .toggle-board::after,
   html.light-mode .toggle-board::after {
     content: "";
@@ -1325,7 +1341,7 @@ html.light-mode .profile-img {
    (Replaces the "TAB" pill, which sat behind the card and never showed.)
    The menu's padding box ends exactly at the card edge; only its
    transparent right border sticks out, so 100% + 9px is just outside. */
-@media (min-width: 761px) {
+@media (min-width: 761px) and (hover: hover), (min-width: 761px) and (pointer: fine) {
   .menu::before,
   html.light-mode .menu::before {
     content: "";
@@ -1349,5 +1365,39 @@ html.light-mode .profile-img {
 
   html.light-mode .menu::before {
     color: var(--light-text);
+  }
+}
+
+/* Short touch screens (phones in landscape): the theme button moves into
+   the right end of the tab bar so the card can use the full height. */
+@media (max-height: 500px) and (hover: none) and (pointer: coarse) {
+  .card-container {
+    margin-top: 10px;
+  }
+
+  body:not([data-page]),
+  body[data-page="home"],
+  body[data-page]:not([data-page="home"]) {
+    --card-container-height: calc(100dvh - 84px);
+    --card-container-margin-bottom: 64px;
+  }
+
+  /* Keep the content panel below the social links on inner pages. */
+  body[data-page]:not([data-page="home"]) {
+    --content-height: 70%;
+  }
+
+  .toggle-board,
+  .toggle-board:hover {
+    top: auto;
+    bottom: calc(6px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
+    /* Above the tab bar, which comes later in the page at the same level. */
+    z-index: 21;
+  }
+
+  .menu,
+  .menu:hover {
+    padding-right: calc(64px + env(safe-area-inset-right));
   }
 }

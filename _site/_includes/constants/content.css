@@ -1031,7 +1031,7 @@ a.breadcrumb-item:hover {
 }
 
 /* ----- Phones ----- */
-@media (max-width: 760px) {
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
   #repo-content-list,
   #search-results,
   #repo-breadcrumb {
@@ -1066,7 +1066,7 @@ a.breadcrumb-item:hover {
   margin-right: 0.7rem;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
   #repo-breadcrumb,
   #file-content {
     width: 100%;
@@ -1170,7 +1170,7 @@ a.breadcrumb-item:hover {
   padding-bottom: 2rem;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
   #dynamic-content {
     padding: 3% 4% 0;
   }
@@ -1179,5 +1179,17 @@ a.breadcrumb-item:hover {
   #search-results {
     width: calc(100% + 0.8rem);
     margin-left: -0.4rem;
+  }
+}
+
+/* Touch screens: bigger hit areas for chips and breadcrumb links. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  .blog-post-tag,
+  .blog-tag-link {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .breadcrumb-item {
+    padding: 0.45rem 0.35rem;
   }
 }
