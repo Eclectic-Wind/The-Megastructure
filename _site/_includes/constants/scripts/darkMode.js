@@ -16,6 +16,10 @@ export const DarkMode = {
     toggleDarkMode() {
         const isDarkMode = !this.isDarkModeEnabled();
         localStorage.setItem(config.darkMode.storageKey, isDarkMode);
+        // The sun/moon travel animation only plays once the toggle is used,
+        // not when the page first loads.
+        document.documentElement.classList.add('toggle-animated');
+        this.keepToggleOpen();
 
         // Where supported, reveal the new theme as a circle spreading out
         // from the toggle's knob; otherwise just switch (colours still ease).
@@ -54,6 +58,22 @@ export const DarkMode = {
         transition.finished.finally(() => {
             document.documentElement.classList.remove('theme-switching');
         });
+    },
+
+    // Keep the toggle slid out while the sun/moon travels. Hover is lost
+    // during the theme reveal (the browser overlays the page), and keyboard
+    // or touch users never hover, so otherwise the animation is hidden.
+    keepToggleOpen() {
+        const toggle = elements.darkModeToggle;
+        if (!toggle) {
+            return;
+        }
+
+        const duration =
+            parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mode-icon-animation-duration')) || 0.7;
+        toggle.classList.add('is-switching');
+        clearTimeout(this.switchingTimer);
+        this.switchingTimer = setTimeout(() => toggle.classList.remove('is-switching'), duration * 1000 + 250);
     },
 
     // The reveal starts from the toggle's circle (the sun/moon backdrop).

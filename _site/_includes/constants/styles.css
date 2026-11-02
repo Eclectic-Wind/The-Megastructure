@@ -20,14 +20,10 @@
     filter var(--transition-duration) var(--transition-easing);
   --returnEasing: cubic-bezier(0.445, 0.05, 0.55, 0.95);
   --hoverEasing: cubic-bezier(0.23, 1, 0.32, 1);
-  --stage1-0: translateY(30vh) rotate(720deg);
-  --stage1-1: translateY(-39vh) rotate(1deg);
-  --stage1-2: translateY(-37vh) rotate(0deg);
-  --stage1-3: translateY(32vh) rotate(719deg);
   --border-radius: 10px;
   --page-home-transition: 0.42s cubic-bezier(0.23, 1, 0.32, 1);
   --control-slide-duration: 0.14s;
-  --mode-icon-animation-duration: 0.35s;
+  --mode-icon-animation-duration: 0.7s;
   --menu-label-transition-duration: 0.16s;
 }
 
@@ -387,6 +383,12 @@ html.dark-mode .content-spotlight {
   align-items: center;
   cursor: pointer;
   will-change: transform;
+  /* Travel is measured from the board (cqh = % of its height), so the
+     icon lands on the ends of the line whatever the card's height. */
+  container-type: size;
+  --toggle-inset: 44px;
+  --toggle-up: calc(-50cqh + var(--toggle-inset));
+  --toggle-down: calc(50cqh - var(--toggle-inset));
 }
 
 .toggle-board:hover {
@@ -430,9 +432,9 @@ html.light-mode .toggle-board::after {
   content: "";
   position: absolute;
   right: 50%;
-  top: 5vh;
+  top: var(--toggle-inset);
+  bottom: var(--toggle-inset);
   width: 1px;
-  height: 65vh;
   background-color: var(--dark-text);
   z-index: 1;
   transition: var(--transition);
@@ -447,8 +449,7 @@ html.light-mode .toggle-board::after {
   position: absolute;
   caret-color: transparent;
   z-index: 3;
-  transform: bottom 5s ease;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
@@ -458,132 +459,112 @@ html.light-mode .toggle-board::after {
   font-size: 40px;
   opacity: 1;
   z-index: 2;
-  transition: color 0.15s ease;
 }
 
 .light-mode .toggle-board .fa-circle {
   color: var(--light-bg);
-  transition: color 0.19s ease;
 }
 
-/* Animations */
-html.light-mode .toggle-board .fa-moon {
-  animation: hideMoon var(--mode-icon-animation-duration) forwards;
+/* Animations
+   Resting positions: sun up in light mode, moon down in dark mode. The
+   travel (with its double spin and a small overshoot before settling)
+   only plays once the visitor has used the toggle, not on page load. */
+html.light-mode .toggle-board i {
+  transform: translateY(var(--toggle-up));
 }
 
-html.light-mode .toggle-board .fa-sun {
-  animation: showSun var(--mode-icon-animation-duration) forwards;
+html.dark-mode .toggle-board i {
+  transform: translateY(var(--toggle-down));
 }
 
-html.light-mode .toggle-board .fa-circle {
-  animation: moveCircleUp var(--mode-icon-animation-duration) forwards;
-}
-
-html.dark-mode .toggle-board .fa-moon {
-  animation: showMoon var(--mode-icon-animation-duration) forwards;
-}
-
+html.light-mode .toggle-board .fa-moon,
 html.dark-mode .toggle-board .fa-sun {
-  animation: hideSun var(--mode-icon-animation-duration) forwards;
+  opacity: 0;
 }
 
-html.dark-mode .toggle-board .fa-circle {
-  animation: moveCircleDown var(--mode-icon-animation-duration) forwards;
+html.light-mode .toggle-board .fa-sun,
+html.dark-mode .toggle-board .fa-moon {
+  opacity: 1;
 }
 
-@keyframes hideMoon {
+html.toggle-animated.light-mode .toggle-board i {
+  animation: toggleRise var(--mode-icon-animation-duration) both;
+}
+
+html.toggle-animated.dark-mode .toggle-board i {
+  animation: toggleSet var(--mode-icon-animation-duration) both;
+}
+
+/* The outgoing icon fades early and the incoming one late, so they never
+   blur together mid-flight. */
+html.toggle-animated.light-mode .toggle-board .fa-sun {
+  animation-name: toggleRise, toggleIconIn;
+}
+
+html.toggle-animated.light-mode .toggle-board .fa-moon {
+  animation-name: toggleRise, toggleIconOut;
+}
+
+html.toggle-animated.dark-mode .toggle-board .fa-moon {
+  animation-name: toggleSet, toggleIconIn;
+}
+
+html.toggle-animated.dark-mode .toggle-board .fa-sun {
+  animation-name: toggleSet, toggleIconOut;
+}
+
+@keyframes toggleRise {
   0% {
-    transform: var(--stage1-0);
-    opacity: 1;
+    transform: translateY(var(--toggle-down)) rotate(720deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1);
   }
 
-  80% {
-    transform: var(--stage1-1);
-    opacity: 0;
+  78% {
+    transform: translateY(calc(var(--toggle-up) - 6px)) rotate(-10deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.3, 1);
   }
 
   100% {
-    transform: var(--stage1-2);
-    opacity: 0;
+    transform: translateY(var(--toggle-up)) rotate(0deg);
   }
 }
 
-@keyframes showSun {
+@keyframes toggleSet {
   0% {
-    transform: var(--stage1-0);
-    opacity: 0;
+    transform: translateY(var(--toggle-up)) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1);
   }
 
-  80% {
-    transform: var(--stage1-1);
-    opacity: 1;
+  78% {
+    transform: translateY(calc(var(--toggle-down) + 6px)) rotate(730deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.3, 1);
   }
 
   100% {
-    transform: var(--stage1-2);
-    opacity: 1;
+    transform: translateY(var(--toggle-down)) rotate(720deg);
   }
 }
 
-@keyframes showMoon {
-  0% {
-    transform: var(--stage1-2);
+@keyframes toggleIconIn {
+  0%,
+  28% {
     opacity: 0;
   }
 
-  80% {
-    transform: var(--stage1-3);
-    opacity: 1;
-  }
-
+  68%,
   100% {
-    transform: var(--stage1-0);
     opacity: 1;
   }
 }
 
-@keyframes hideSun {
+@keyframes toggleIconOut {
   0% {
-    transform: var(--stage1-2);
     opacity: 1;
   }
 
-  80% {
-    transform: var(--stage1-3);
+  42%,
+  100% {
     opacity: 0;
-  }
-
-  100% {
-    transform: var(--stage1-0);
-    opacity: 0;
-  }
-}
-
-@keyframes moveCircleUp {
-  0% {
-    transform: var(--stage1-0);
-  }
-
-  80% {
-    transform: var(--stage1-1);
-  }
-
-  100% {
-    transform: var(--stage1-2);
-  }
-}
-
-@keyframes moveCircleDown {
-  0% {
-    transform: var(--stage1-2);
-  }
-
-  80% {
-    transform: var(--stage1-3);
-  }
-
-  100% {
-    transform: var(--stage1-0);
   }
 }
 
@@ -1313,11 +1294,13 @@ html.light-mode .profile-img {
     border: 0;
     border-radius: 3px;
     background-color: currentColor;
-    opacity: 0.2;
   }
 
+  /* Opacity on its own low-specificity rule so the hover/switching rules
+     below can always hide the grip, in either theme. */
   .toggle-board::after {
     color: var(--dark-text);
+    opacity: 0.2;
   }
 
   html.light-mode .toggle-board::after {
@@ -1325,8 +1308,14 @@ html.light-mode .profile-img {
   }
 
   .toggle-board:hover::after,
-  .toggle-board:focus-visible::after {
+  .toggle-board:focus-visible::after,
+  .toggle-board.is-switching::after {
     opacity: 0;
+  }
+
+  /* Stay slid out while the sun/moon travels (see darkMode.js). */
+  .toggle-board.is-switching {
+    transform: translate3d(-60%, 0, 0);
   }
 }
 
